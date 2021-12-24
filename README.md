@@ -1,4 +1,4 @@
-# Infinite-Raid
+# Infinite Raid
 Project Game Kelas Entrepreneurship Matakuliah Artificial Intelligence Semester 3
 
 Made using Unity 2020.1.6f1
