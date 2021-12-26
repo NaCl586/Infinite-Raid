@@ -7,7 +7,7 @@ public static class Utils
     //Leveling player
     public static int playerScaling()
     {
-        int RNG = Random.Range(1, 100);
+        int RNG = Random.Range(1, 101);
         if (RNG >= 1 && RNG <= 10) return 1;
         if (RNG >= 11 && RNG <= 22) return 2;
         if (RNG >= 23 && RNG <= 36) return 3;

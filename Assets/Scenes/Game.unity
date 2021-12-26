@@ -802,6 +802,9 @@ MonoBehaviour:
     HP: {fileID: 151073145}
   _sfx: {fileID: 1682882371}
   _music: {fileID: 938695649}
+  _initPlayerCount: 4
+  _initEnemyCount: 3
+  _initEnemyVariation: 1
 --- !u!4 &116575475
 Transform:
   m_ObjectHideFlags: 0

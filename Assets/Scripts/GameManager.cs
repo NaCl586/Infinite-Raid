@@ -59,18 +59,22 @@ public class GameManager : MonoBehaviour
     [Header("Level Up")]
     public GameObject _levelUpBar;
     public LevelUpStats[] _levelUpText;
+    public Text _pressAnyKeyMessage;
+    public Text _waveText;
 
     [Header("SFX")]
     public SFX _sfx;
     public music _music;
 
     //game related stuff
-    private int _wave = 1;
+    private int _wave;
     private GameState _gameState;
-    private int _initPlayerCount;
-    private int _initEnemyCount;
+    [Header("Debug")]
+    [SerializeField] [Range(1, 4)] private int _initPlayerCount;
+    [SerializeField] [Range(1, 3)] private int _initEnemyCount;
     private int _initSkillCount;
-    private int _initEnemyVariation; //variasi enemy yg ada, makin tinggi makin susah (1-4)
+    [SerializeField] [Range(1, 4)] private int _initEnemyVariation; //variasi enemy yg ada, makin tinggi makin susah (1-4)
+    private int _scalingMultiplier = 1;
 
     //UI related stuff
     private menuState _selectedMenu;
@@ -82,6 +86,7 @@ public class GameManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        Cursor.visible = false;
         _music.battle();
 
         //GameManager Init
@@ -89,34 +94,64 @@ public class GameManager : MonoBehaviour
         _hero = new List<Hero>();
         _enemy = new List<Enemy>();
 
+        //Wave init
+        _wave = PlayerPrefs.GetInt("Wave", 1);
+        _waveText.text = "Wave " + _wave;
+
+        _scalingMultiplier = 1;
+        int _scalingPower = (_wave + 1) / 5;
+        for(int i = 0; i < _scalingPower; i++)
+        {
+            _scalingMultiplier = (_scalingMultiplier * 125) / 100;
+        }
+
         //Player Init
-        _initPlayerCount = 2;
-        foreach(HeroStats h in heroStats)
+        foreach (HeroStats h in heroStats)
             h.gameObject.SetActive(false);
+
+        //int maxPlayersEncountered = PlayerPrefs.GetInt("TotalHeroesMet", 1);
         for (int i = 0; i < _initPlayerCount; i++)
         {
             heroStats[i].gameObject.SetActive(true);
-            Hero h = Instantiate(_heroPool[i]);
-            _hero.Add(h);
-            Transform hpos = h.gameObject.transform;
-            hpos.position = new Vector2(12, 0);
-            hpos.transform.DOMove(Positions[i].transform.position, 0.5f);
+            
+            //check if the hero is still alive
+            if(PlayerPrefs.GetInt("HeroIsAlive"+i, 1) == 1)
+            {
+                Hero h = Instantiate(_heroPool[i]);
+                int initHP = PlayerPrefs.GetInt("HeroHP" + i, 100);
+                int initMaxHP = PlayerPrefs.GetInt("HeroMaxHP" + i, 100);
+                int initAP = PlayerPrefs.GetInt("HeroAP" + i, 20);
+                h.setMaxHP(initMaxHP);
+                h.setHP(initHP);
+                h.setAP(initAP);
+                _hero.Add(h);
+                Transform hpos = h.gameObject.transform;
+                hpos.position = new Vector2(12, 0);
+                hpos.transform.DOMove(Positions[i].transform.position, 0.5f);
+            }
         }
 
         //Enemy Init
-        _initEnemyCount = 3;
-        _initEnemyVariation = 3;
         foreach (Text t in _enemyNames)
             t.gameObject.SetActive(false);
+
         for (int i = 0; i < _initEnemyCount; i++)
         {
             _enemyNames[i].gameObject.SetActive(true);
             int rng = Random.Range(1, 100) % _initEnemyVariation;
             Enemy e = Instantiate(_enemyPool[rng]);
-            e.setHP(Random.Range(e.getMaxHP().min, e.getMaxHP().max));
+            int initHP = Random.Range(e.getMaxHP().min, e.getMaxHP().max + 1);
+            int repetition = _scalingPower;
+
+            //enemy HP scaling mechanic
+            for (int j = 0; j < repetition; j++)
+            {
+                initHP = (initHP * 125) / 100;
+            }
+            e.setHP(initHP);
             _enemy.Add(e);
             _enemyNames[i].text = e._name;
-           Transform epos = e.gameObject.transform;
+            Transform epos = e.gameObject.transform;
             epos.position = new Vector2(-7, 0);
             epos.transform.DOMove(Positions[i+4].transform.position, 0.5f);
         }
@@ -210,6 +245,7 @@ public class GameManager : MonoBehaviour
                     {
                         arrowStartTime = Time.time;
                         _sfx.cursor();
+                        _selectedEnemy = 0;
                         _selectedMenu = menuState.enemySelect;
                         arrow.SetActive(true);
                         _selectedSkill = -1;
@@ -340,6 +376,13 @@ public class GameManager : MonoBehaviour
             clearEnemyMenu();
             clearHeroMenu(true);
         }
+
+        //Wave End
+        if (_gameState == GameState.waitingForInput)
+        {
+            if (Input.anyKey)
+                SceneManager.LoadScene(0);
+        }
     }
 
     void endPlayerTurn(int user)
@@ -359,7 +402,7 @@ public class GameManager : MonoBehaviour
                 {
                     continue;
                 }
-                int newAP = _hero[i].getAP() + Random.Range(1, 6);
+                int newAP = _hero[i].getAP() + Random.Range(1, 6 + 1);
                 _hero[i].setAP(newAP > 20 ? 20 : newAP);
             }
         }
@@ -379,6 +422,9 @@ public class GameManager : MonoBehaviour
         yield return new WaitForSecondsRealtime(1.5f);
         for(int i = 1; i < _hero.Count; i++)
         {
+            //kalo udah battle end, jgn diterusin
+            if (_gameState == GameState.battleEnd) break;
+
             bool healFlag = false;
             //AP > 13 = bisa heal
             if (_hero[i].getAP() >= 13)
@@ -386,7 +432,7 @@ public class GameManager : MonoBehaviour
                 //cari yg bisa diheal
                 for(int j = 0; j < _hero.Count; j++)
                 {
-                    if((_hero[j].getHP() * 100 / _hero[j].getMaxHP()) <= 75){
+                    if((_hero[j].getHP() * 100 / _hero[j].getMaxHP()) <= 30){
                         _selectedSkill = 0;
                         useSkill(0,i,j);
                         healFlag = true;
@@ -399,7 +445,9 @@ public class GameManager : MonoBehaviour
                 yield return new WaitForSecondsRealtime(3.8f);
                 continue;
             }
-            PlayerGelud(i, Random.Range(1, _enemy.Count)-1);
+            int rng = Random.Range(0, _enemy.Count);
+            Debug.Log(rng);
+            PlayerGelud(i, Random.Range(0, _enemy.Count));
             while (npcAttackInProgress)
             {
                 yield return null;
@@ -421,6 +469,9 @@ public class GameManager : MonoBehaviour
         yield return new WaitForSecondsRealtime(1.5f);
         for (int i = 0; i < _enemy.Count; i++)
         {
+            //kalo udah battle end, jgn diterusin
+            if (_gameState == GameState.battleEnd) break;
+
             //bakal beda2 tergantung enemy apa
             EnemyGelud(i, Random.Range(1, 100) % _hero.Count);
             while (enemyAttackInProgress)
@@ -452,7 +503,7 @@ public class GameManager : MonoBehaviour
             _hero[userIndex].setAP(_hero[userIndex].getAP() - _skillList._skillList[skillIndex]._APNeeded);
 
             //healing effect
-            int addedHP = Random.Range(25, 60) * _hero[targetIndex].getMaxHP() / 100;
+            int addedHP = Random.Range(25, 61) * _hero[targetIndex].getMaxHP() / 100;
             int maxHP = _hero[targetIndex].getMaxHP();
             int newHP = addedHP + _hero[targetIndex].getHP();
             if (newHP > maxHP) newHP = maxHP;
@@ -517,7 +568,7 @@ public class GameManager : MonoBehaviour
         clearHeroMenu(false);
         _heroNames[_selectedHero].color = _hero[_selectedHero].getHP() == _hero[_selectedHero].getMaxHP() ? Color.red : Color.yellow;
         if(_hero[_selectedHero].getHP() != _hero[_selectedHero].getMaxHP())
-          arrow.transform.position = Positions[_selectedHero].transform.position + new Vector3(-1, 0, 0);
+          arrow.transform.position = _hero[_selectedHero].transform.position + new Vector3(-1, 0, 0);
     }
 
     void clearHeroMenu(bool colorClear)
@@ -581,7 +632,7 @@ public class GameManager : MonoBehaviour
     {
         clearEnemyMenu();
         _enemyNames[_selectedEnemy].color = Color.yellow;
-        arrow.transform.position = Positions[4 + _selectedEnemy].transform.position + new Vector3(-1, 0, 0);
+        arrow.transform.position = _enemy[_selectedEnemy].transform.position + new Vector3(-1, 0, 0);
     }
 
     void clearEnemyMenu()
@@ -599,9 +650,10 @@ public class GameManager : MonoBehaviour
     void PlayerGelud(int attackerIndex, int enemyIndex)
     {
         npcAttackInProgress = true;
-        int playerDamage = Random.Range(_hero[attackerIndex].getMAtk().min, _hero[attackerIndex].getMAtk().max) + Random.Range(_hero[attackerIndex].getRAtk().min, _hero[attackerIndex].getRAtk().max);
-        int enemyDefense = Random.Range(_enemy[enemyIndex].getMDef().min, _enemy[enemyIndex].getMDef().max) + Random.Range(_enemy[enemyIndex].getRDef().min, _enemy[enemyIndex].getRDef().max);
-        int totalDamage = (100 - enemyDefense) * playerDamage / 100;
+
+        int playerDamage = Random.Range(_hero[attackerIndex].getMAtk().min, _hero[attackerIndex].getMAtk().max + 1) + Random.Range(_hero[attackerIndex].getRAtk().min, _hero[attackerIndex].getRAtk().max + 1);
+        int enemyDefense = Random.Range(_enemy[enemyIndex].getMDef().min, _enemy[enemyIndex].getMDef().max + 1) + Random.Range(_enemy[enemyIndex].getRDef().min, _enemy[enemyIndex].getRDef().max + 1);
+        int totalDamage = _scalingMultiplier * (100 - enemyDefense) * playerDamage / 100;
         _enemy[enemyIndex].setHP(_enemy[enemyIndex].getHP() - totalDamage);
         StartCoroutine(PlayerGeludAnim(attackerIndex, totalDamage, enemyIndex)); 
     }
@@ -616,17 +668,17 @@ public class GameManager : MonoBehaviour
         InstantiateDamage(totalDamage, _enemy[enemyIndex].gameObject, false);
         yield return new WaitForSecondsRealtime(1f);
         updateGameCondition();
-        npcAttackInProgress = false;
         if (_gameState != GameState.battleEnd) endPlayerTurn(-1);
+        npcAttackInProgress = false;
     }
 
     //Enemy Gelud
     void EnemyGelud(int enemyIndex, int heroIndex)
     {
         enemyAttackInProgress = true;
-        int enemyDamage = Random.Range(_enemy[enemyIndex].getMAtk().min, _enemy[enemyIndex].getMAtk().max) + Random.Range(_enemy[enemyIndex].getRAtk().min, _enemy[enemyIndex].getRAtk().max);
+        int enemyDamage = Random.Range(_enemy[enemyIndex].getMAtk().min, _enemy[enemyIndex].getMAtk().max + 1) + Random.Range(_enemy[enemyIndex].getRAtk().min, _enemy[enemyIndex].getRAtk().max + 1);
         int playerDefense = _hero[heroIndex].getMDef() + _hero[heroIndex].getRDef();
-        int totalDamage = (100 - playerDefense) * enemyDamage / 100;
+        int totalDamage = _scalingMultiplier * (100 - playerDefense) * enemyDamage / 100;
         _hero[heroIndex].setHP(_hero[heroIndex].getHP() - totalDamage);
         StartCoroutine(EnemyGeludAnim(totalDamage, enemyIndex, heroIndex));
     }
@@ -754,6 +806,11 @@ public class GameManager : MonoBehaviour
                 _levelUpText[0].HP.DOColor(Color.white, 0.5f);
             });
         });
+
+        //clear all saved data (nanti weapon gw tambahin)
+        PlayerPrefs.DeleteAll();
+
+        StartCoroutine(DelayBeforePromptInput());
     }
 
     IEnumerator gameWinAnim()
@@ -765,6 +822,7 @@ public class GameManager : MonoBehaviour
     void gameWin()
     {
         _music.fanfare();
+        _pressAnyKeyMessage.gameObject.SetActive(false);
 
         foreach (LevelUpStats stat in _levelUpText)
             stat.Name.text = stat.HP.text = "";
@@ -772,27 +830,64 @@ public class GameManager : MonoBehaviour
         _levelUpBar.SetActive(true);
         _levelUpBar.GetComponent<Image>().color = Color.clear;
 
+        int[] HP = new int[4];
+        for (int i = 0; i < _hero.Count; i++)
+        {
+            int levelUpBonus = Utils.playerScaling();
+            HP[i] = _hero[i].getMaxHP() * levelUpBonus / 100;
+            _hero[i].setMaxHP(_hero[i].getMaxHP() + HP[i]);
+        }
+
         GameObject message = Instantiate(BigMessage);
         message.transform.position = new Vector2(-9.125f, -3.52f);
         message.transform.DOMoveX(0.625f, 0.5f).OnComplete(() => {
-            _levelUpBar.GetComponent<Image>().DOColor(new Color(1, 1, 1, 0.3843137f), 0.5f).OnComplete(()=> { 
-                for(int i = 0; i < _hero.Count; i++)
+            _levelUpBar.GetComponent<Image>().DOColor(new Color(1, 1, 1, 0.3843137f), 0.5f).OnComplete(() => {
+                for (int i = 0; i < _hero.Count; i++)
                 {
-                    int levelUpBonus = Utils.playerScaling();
-                    int HP = _hero[i].getMaxHP() * levelUpBonus / 100;
-                    _hero[i].setMaxHP(_hero[i].getMaxHP() + HP);
-
                     _levelUpText[i].Name.color = _levelUpText[i].HP.color = Color.clear;
-
                     _levelUpText[i].Name.text = _hero[i]._name.ToString();
-                    _levelUpText[i].HP.text = "HP + " + HP + "  (" + (_hero[i].getMaxHP() - HP) + "->" + _hero[i].getMaxHP() + ")";
-
+                    _levelUpText[i].HP.text = "HP + " + HP[i] + "  (" + (_hero[i].getMaxHP() - HP[i]) + "->" + _hero[i].getMaxHP() + ")";
                     _levelUpText[i].Name.DOColor(Color.white, 0.5f);
                     _levelUpText[i].HP.DOColor(Color.white, 0.5f);
                 }
             });
         });
-        UpdateHPAP();
+
+        for (int i = 0; i < _heroPool.Length; i++)
+        {
+            bool alive = false;
+            for(int j = 0; j < _hero.Count; j++)
+            {
+                if(_hero[j]._name == _heroPool[i]._name)
+                {
+                    alive = true;
+                    break;
+                }
+            }
+            if (!alive) continue;
+            Debug.Log(_hero[i].getMaxHP());
+            PlayerPrefs.SetInt("HeroIsAlive" + i, 1);
+            PlayerPrefs.SetInt("HeroHP" + i, _hero[i].getHP());
+            PlayerPrefs.SetInt("HeroAP" + i, _hero[i].getAP());
+            PlayerPrefs.SetInt("HeroMaxHP" + i, _hero[i].getMaxHP());
+        }
+        PlayerPrefs.SetInt("Wave", _wave + 1);
+        Debug.Log("Game Saved");
+        StartCoroutine(DelayBeforePromptInput());
+    }
+
+    IEnumerator DelayBeforePromptInput()
+    {
+        yield return new WaitForSecondsRealtime(5f);
+        PromptInput();
+    }
+
+    void PromptInput()
+    {
+        _pressAnyKeyMessage.gameObject.SetActive(true);
+        _pressAnyKeyMessage.color = Color.clear;
+        _pressAnyKeyMessage.DOColor(Color.white, 0.5f);
+        _gameState = GameState.waitingForInput;
     }
 
     #endregion
@@ -804,7 +899,8 @@ public class GameManager : MonoBehaviour
         heroTurn,
         enemyTurn,
         npcTurn,
-        battleEnd
+        battleEnd,
+        waitingForInput
     };
 
     public enum menuState { 
@@ -814,7 +910,7 @@ public class GameManager : MonoBehaviour
         enemySelect,
         heroSelect,
         attackInProgress,
-        healingInProgress
+        healingInProgress,
     };
 
     #endregion
