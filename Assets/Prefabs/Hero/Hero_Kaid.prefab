@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 5883541682976788423}
   - component: {fileID: 6190066790002509390}
   m_Layer: 0
-  m_Name: Hero_Sorath
+  m_Name: Hero_Kaid
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -72,7 +72,7 @@ SpriteRenderer:
   m_SortingLayerID: -44025399
   m_SortingLayer: 2
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: 35df8c87a08a25642a789ba6d59b0afb, type: 3}
+  m_Sprite: {fileID: 21300000, guid: c1400d178748b524e8db85b5ff8a5d98, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 1
   m_FlipY: 0
@@ -95,15 +95,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dfb8202653458ea4f9b257eac58c4aa9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _name: Sorath
+  _name: Kaid
   _HP: 100
   _MaxHP: 100
   _AP: 20
   _MAtk:
-    min: 25
-    max: 30
+    min: 23
+    max: 26
   _RAtk:
-    min: 25
+    min: 26
     max: 30
   _MDef: 10
-  _RDef: 10
+  _RDef: 14

@@ -56,4 +56,11 @@ public class Hero : MonoBehaviour
             this.gameObject.transform.DOMoveX(this.gameObject.transform.position.x - 0.5f, 0.4f);
         });
     }
+
+    public void defeated()
+    {
+        this.gameObject.GetComponent<SpriteRenderer>().DOColor(Color.clear, 0.4f).OnComplete(() => {
+            Destroy(this.gameObject);
+        });
+    }
 }
