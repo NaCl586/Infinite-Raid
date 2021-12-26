@@ -235,7 +235,6 @@ public class GameManager : MonoBehaviour
                 if (Input.GetKey(KeyCode.Return) && _hero[0].getAP() >= _skill[_selectedSkill]._APNeeded && (Time.time - arrowStartTime) > 0.175f)
                 {
                     arrowStartTime = Time.time;
-                    clearSkillMenu();
                     //skill 0 - prayer of healing perlu select player yg mau di heal
                     if(_selectedSkill == 0)
                     {
