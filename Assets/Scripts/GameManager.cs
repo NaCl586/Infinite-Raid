@@ -28,9 +28,8 @@ public class GameManager : MonoBehaviour
     public GameObject[] Positions;
     //0-3 = player; 4-6 enemy
 
-    [Header("Buttons")]
+    [Header("Action")]
     public Text[] action;
-    public Text[] enemy;
 
     [Header("Hero")]
     public HeroStats[] heroStats;
@@ -46,6 +45,7 @@ public class GameManager : MonoBehaviour
     [Header("Popups")]
     public GameObject Damage;
     public GameObject BigMessage;
+    public GameObject arrow;
 
     [Header("Skill")]
     public SkillList _skillList;
@@ -70,6 +70,7 @@ public class GameManager : MonoBehaviour
     private int _initPlayerCount;
     private int _initEnemyCount;
     private int _initSkillCount;
+    private int _initEnemyVariation; //variasi enemy yg ada, makin tinggi makin susah (1-4)
 
     //UI related stuff
     private menuState _selectedMenu;
@@ -104,12 +105,14 @@ public class GameManager : MonoBehaviour
 
         //Enemy Init
         _initEnemyCount = 3;
+        _initEnemyVariation = 3;
         foreach (Text t in _enemyNames)
             t.gameObject.SetActive(false);
         for (int i = 0; i < _initEnemyCount; i++)
         {
             _enemyNames[i].gameObject.SetActive(true);
-            Enemy e = Instantiate(_enemyPool[0]);
+            int rng = Random.Range(1, 100) % _initEnemyVariation;
+            Enemy e = Instantiate(_enemyPool[rng]);
             e.setHP(Random.Range(e.getMaxHP().min, e.getMaxHP().max));
             _enemy.Add(e);
             _enemyNames[i].text = e._name;
@@ -136,6 +139,7 @@ public class GameManager : MonoBehaviour
         _levelUpBar.SetActive(false);
         _levelUpBar.GetComponent<Image>().color = Color.clear;
         displaySkillMenuAnim(false, false);
+        arrow.SetActive(false);
 
         _selectedMenu = menuState.none;
         updateGameCondition();
@@ -207,6 +211,7 @@ public class GameManager : MonoBehaviour
                         arrowStartTime = Time.time;
                         _sfx.cursor();
                         _selectedMenu = menuState.enemySelect;
+                        arrow.SetActive(true);
                         _selectedSkill = -1;
                         clearActionMenu();
                         setEnemyMenu();
@@ -226,7 +231,7 @@ public class GameManager : MonoBehaviour
                         arrowStartTime = Time.time;
                         _sfx.cursor();
                         _selectedSkill = -1;
-                        regenerateAP(false);
+                        regenerateAP(false, -2);
                         clearActionMenu();
                         _gameState = GameState.enemyTurn;
                     }
@@ -256,6 +261,7 @@ public class GameManager : MonoBehaviour
                     if (_selectedSkill == 0)
                     {
                         _selectedMenu = menuState.heroSelect;
+                        arrow.SetActive(true);
                         setHeroMenu();
                     }
                 }
@@ -271,6 +277,7 @@ public class GameManager : MonoBehaviour
                     arrowStartTime = Time.time;
                     _sfx.cursor();
                     _selectedMenu = menuState.skillSelect;
+                    arrow.SetActive(false);
                     _selectedSkill = 0;
                     clearHeroMenu(true);
                     setSkillMenu();
@@ -280,6 +287,7 @@ public class GameManager : MonoBehaviour
                     arrowStartTime = Time.time;
                     _sfx.cursor();
                     _selectedMenu = menuState.healingInProgress;
+                    arrow.SetActive(false);
                     displaySkillMenuAnim(false, false);
                     clearHeroMenu(true);
                     clearSkillMenu();
@@ -297,6 +305,7 @@ public class GameManager : MonoBehaviour
                     arrowStartTime = Time.time;
                     _sfx.cursor();
                     _selectedMenu = menuState.actionSelect;
+                    arrow.SetActive(false);
                     clearEnemyMenu();
                     setActionMenu();
                 }
@@ -305,6 +314,7 @@ public class GameManager : MonoBehaviour
                     arrowStartTime = Time.time;
                     _sfx.cursor();
                     _selectedMenu = menuState.attackInProgress;
+                    arrow.SetActive(false);
                     clearEnemyMenu();
                     //regular attack
                     if(_selectedSkill == -1) PlayerGelud(0,_selectedEnemy);
@@ -332,20 +342,23 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    void endPlayerTurn()
+    void endPlayerTurn(int user)
     {
-        regenerateAP(true);
+        regenerateAP(true, user);
         if (_hero.Count > 1) _gameState = GameState.npcTurn; //AI turn
         else _gameState = GameState.enemyTurn;
     }
 
-    void regenerateAP(bool partial)
+    void regenerateAP(bool partial, int user)
     {
         if (partial)
         {
             for (int i = 0; i < _hero.Count; i++)
             {
-                if (_selectedSkill != -1 && i == _selectedHero) continue;
+                if (_selectedSkill != -1 && i == user)
+                {
+                    continue;
+                }
                 int newAP = _hero[i].getAP() + Random.Range(1, 6);
                 _hero[i].setAP(newAP > 20 ? 20 : newAP);
             }
@@ -358,6 +371,7 @@ public class GameManager : MonoBehaviour
         UpdateHPAP();
     }
 
+    #region gelud satu2
     //NPC satu2 gelud
     IEnumerator NPCGelud()
     {
@@ -372,7 +386,8 @@ public class GameManager : MonoBehaviour
                 //cari yg bisa diheal
                 for(int j = 0; j < _hero.Count; j++)
                 {
-                    if((_hero[j].getHP() * 100 / _hero[j].getMaxHP()) <= 30){
+                    if((_hero[j].getHP() * 100 / _hero[j].getMaxHP()) <= 75){
+                        _selectedSkill = 0;
                         useSkill(0,i,j);
                         healFlag = true;
                         break;
@@ -395,7 +410,6 @@ public class GameManager : MonoBehaviour
         {
             _gameState = GameState.enemyTurn;
             _selectedSkill = -1;
-            regenerateAP(true);
         }
         npcAttackStarted = false;
     }
@@ -423,7 +437,7 @@ public class GameManager : MonoBehaviour
             _selectedAction = 0;
             setActionMenu();
             _selectedSkill = -1;
-            regenerateAP(true);
+            regenerateAP(true, -1);
         }
         enemyAttackStarted = false;
     }
@@ -443,17 +457,18 @@ public class GameManager : MonoBehaviour
             int newHP = addedHP + _hero[targetIndex].getHP();
             if (newHP > maxHP) newHP = maxHP;
             _hero[targetIndex].setHP(newHP);
-            StartCoroutine(healAnim(addedHP, targetIndex));
+            StartCoroutine(healAnim(addedHP, userIndex, targetIndex));
         }
     }
 
-    IEnumerator healAnim(int addedHP, int targetIndex)
+    #endregion
+
+    IEnumerator healAnim(int addedHP, int userIndex, int targetIndex)
     {
         yield return new WaitForSeconds(0.5f);
         InstantiateDamage(addedHP, _hero[targetIndex].gameObject, true);
         yield return new WaitForSeconds(1f);
-        updateGameCondition();
-        endPlayerTurn();
+        endPlayerTurn(userIndex);
     }
 
     //Menus Navigations
@@ -501,6 +516,8 @@ public class GameManager : MonoBehaviour
     {
         clearHeroMenu(false);
         _heroNames[_selectedHero].color = _hero[_selectedHero].getHP() == _hero[_selectedHero].getMaxHP() ? Color.red : Color.yellow;
+        if(_hero[_selectedHero].getHP() != _hero[_selectedHero].getMaxHP())
+          arrow.transform.position = Positions[_selectedHero].transform.position + new Vector3(-1, 0, 0);
     }
 
     void clearHeroMenu(bool colorClear)
@@ -564,6 +581,7 @@ public class GameManager : MonoBehaviour
     {
         clearEnemyMenu();
         _enemyNames[_selectedEnemy].color = Color.yellow;
+        arrow.transform.position = Positions[4 + _selectedEnemy].transform.position + new Vector3(-1, 0, 0);
     }
 
     void clearEnemyMenu()
@@ -575,7 +593,7 @@ public class GameManager : MonoBehaviour
     }
     #endregion
 
-    //Battle
+    //Player Attack
     #region Gelud
     //Player Gelud
     void PlayerGelud(int attackerIndex, int enemyIndex)
@@ -599,7 +617,7 @@ public class GameManager : MonoBehaviour
         yield return new WaitForSecondsRealtime(1f);
         updateGameCondition();
         npcAttackInProgress = false;
-        if (_gameState != GameState.battleEnd) endPlayerTurn();
+        if (_gameState != GameState.battleEnd) endPlayerTurn(-1);
     }
 
     //Enemy Gelud
@@ -736,7 +754,6 @@ public class GameManager : MonoBehaviour
                 _levelUpText[0].HP.DOColor(Color.white, 0.5f);
             });
         });
-        UpdateHPAP();
     }
 
     IEnumerator gameWinAnim()
@@ -775,7 +792,7 @@ public class GameManager : MonoBehaviour
                 }
             });
         });
-        updateHeroNames();
+        UpdateHPAP();
     }
 
     #endregion
