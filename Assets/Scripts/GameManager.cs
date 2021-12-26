@@ -36,6 +36,7 @@ public class GameManager : MonoBehaviour
     public HeroStats[] heroStats;
     public Hero[] _heroPool;
     private List<Hero> _hero;
+    public Text[] _heroNames;
 
     [Header("Enemy")]
     public Text[] _enemyNames;
@@ -46,6 +47,15 @@ public class GameManager : MonoBehaviour
     public GameObject Damage;
     public GameObject BigMessage;
 
+    [Header("Skill")]
+    public SkillList _skillList;
+    public GameObject _skillBar;
+    public GameObject _upperBar;
+    public Text _skillDesc;
+    public Text _APNeeded;
+    public Text[] _skillNames;
+    public List<Skill> _skill;
+
     [Header("Level Up")]
     public GameObject _levelUpBar;
     public LevelUpStats[] _levelUpText;
@@ -55,11 +65,14 @@ public class GameManager : MonoBehaviour
     private GameState _gameState;
     private int _initPlayerCount;
     private int _initEnemyCount;
+    private int _initSkillCount;
 
     //UI related stuff
     private menuState _selectedMenu;
     private int _selectedAction = 0;
     private int _selectedEnemy = 0;
+    private int _selectedSkill = -1; //-1 artinya normal attack
+    private int _selectedHero = 0; //for skill, krn pasti player cuma bs control siapapun di index 0
 
     // Start is called before the first frame update
     void Start()
@@ -84,7 +97,7 @@ public class GameManager : MonoBehaviour
         }
 
         //Enemy Init
-        _initEnemyCount = 1;
+        _initEnemyCount = 3;
         foreach (Text t in _enemyNames)
             t.gameObject.SetActive(false);
         for (int i = 0; i < _initEnemyCount; i++)
@@ -100,9 +113,24 @@ public class GameManager : MonoBehaviour
             epos.transform.DOMove(Positions[i+4].transform.position, 0.5f);
         }
 
+        //init skill list
+        _initSkillCount = 1;
+        foreach(Text t in _skillNames)
+            t.gameObject.SetActive(false);
+        
+        //prayer of healing
+        _skill.Add(_skillList._skillList[0]);
+
+        for (int i = 0; i < _initSkillCount; i++)
+        {
+            _skillNames[i].gameObject.SetActive(true);
+            _skillNames[i].text = _skill[i]._skillName;
+        }
+
         //UI Init
         _levelUpBar.SetActive(false);
         _levelUpBar.GetComponent<Image>().color = Color.clear;
+        displaySkillMenuAnim(false, false);
 
         updateGameCondition();
         _selectedMenu = menuState.actionSelect;
@@ -110,10 +138,11 @@ public class GameManager : MonoBehaviour
     }
 
 
-    void InstantiateDamage(int amount, GameObject character)
+    void InstantiateDamage(int amount, GameObject character, bool heal)
     {
         GameObject dmgText = Instantiate(Damage);
         dmgText.transform.position = character.transform.position;
+        dmgText.transform.GetChild(0).GetComponent<Text>().color = heal ? Color.green : Color.white;
         dmgText.transform.GetChild(0).GetComponent<Text>().text = amount.ToString();
         dmgText.transform.DOMoveY(dmgText.transform.position.y + 0.5f, 0.3f).OnComplete(() => {
             dmgText.transform.DOMoveY(dmgText.transform.position.y - 0.5f, 0.3f).OnComplete(() => {
@@ -122,14 +151,39 @@ public class GameManager : MonoBehaviour
         });
     }
 
+    void displaySkillMenuAnim(bool show, bool animate)
+    {
+        float dur = animate ? 0.5f : 0.0001f;
+        //move to pos
+        if (show)
+        {
+            _skillBar.SetActive(true);
+            _upperBar.SetActive(true);
+
+            _skillBar.transform.localPosition = new Vector2(-900f, 67.5f);
+            _upperBar.transform.localPosition = new Vector2(-200f, 500f);
+
+            _skillBar.transform.DOMoveX(_skillBar.transform.position.x + 11.5f, dur);
+            _upperBar.transform.DOMoveY(_upperBar.transform.position.y - 2.25f, dur);
+        }
+        else
+        {
+            _skillBar.transform.DOMoveX(_skillBar.transform.position.x - 11.5f, dur).OnComplete(() => {_skillBar.SetActive(false); });
+            _upperBar.transform.DOMoveY(_upperBar.transform.position.y + 2.25f, dur).OnComplete(() => { _upperBar.SetActive(false); });
+        }
+    }
+
+
 
     private float arrowStartTime;
     private bool enemyAttackInProgress;
     private bool enemyAttackStarted;
     void Update()
     {
+        //Player's Turn
         if(_gameState == GameState.heroTurn)
         {
+            //Select Action Menu
             if(_selectedMenu == menuState.actionSelect)
             {
                 if (Input.GetKey(KeyCode.UpArrow) && (Time.time - arrowStartTime) > 0.175f) changeActionMenu(-1);
@@ -140,18 +194,82 @@ public class GameManager : MonoBehaviour
                     {
                         arrowStartTime = Time.time;
                         _selectedMenu = menuState.enemySelect;
+                        _selectedSkill = -1;
                         clearActionMenu();
                         setEnemyMenu();
+                    }
+                    if (_selectedAction == 1)
+                    {
+                        arrowStartTime = Time.time;
+                        _selectedMenu = menuState.skillSelect;
+                        _selectedSkill = 0;
+                        clearActionMenu();
+                        displaySkillMenuAnim(true, true);
+                        setSkillMenu();
                     }
                     if( _selectedAction == 2)
                     {
                         arrowStartTime = Time.time;
+                        _selectedSkill = -1;
+                        regenerateAP(false);
                         clearActionMenu();
-                        if (_hero.Count > 1) ; //AI turn
-                        else _gameState = GameState.enemyTurn;
+                        endPlayerTurn();
                     }
                 }
             }
+
+            //Skill Select Menu
+            if (_selectedMenu == menuState.skillSelect)
+            {
+                if (Input.GetKey(KeyCode.UpArrow) && (Time.time - arrowStartTime) > 0.175f) changeSkillMenu(-1);
+                else if (Input.GetKey(KeyCode.DownArrow) && (Time.time - arrowStartTime) > 0.175f) changeSkillMenu(1);
+                if (Input.GetKey(KeyCode.Escape) && (Time.time - arrowStartTime) > 0.175f)
+                {
+                    arrowStartTime = Time.time;
+                    _selectedMenu = menuState.actionSelect;
+                    displaySkillMenuAnim(false, true);
+                    clearSkillMenu();
+                    _selectedSkill = -1;
+                    setActionMenu();
+                }
+                if (Input.GetKey(KeyCode.Return) && _hero[0].getAP() >= _skill[_selectedSkill]._APNeeded && (Time.time - arrowStartTime) > 0.175f)
+                {
+                    arrowStartTime = Time.time;
+                    clearSkillMenu();
+                    //skill 0 - prayer of healing perlu select player yg mau di heal
+                    if(_selectedSkill == 0)
+                    {
+                        _selectedMenu = menuState.heroSelect;
+                        setHeroMenu();
+                    }
+                }
+            }
+
+            //Select Hero Menu
+            if(_selectedMenu == menuState.heroSelect)
+            {
+                if (Input.GetKey(KeyCode.UpArrow) && (Time.time - arrowStartTime) > 0.175f) changeHeroMenu(-1);
+                else if (Input.GetKey(KeyCode.DownArrow) && (Time.time - arrowStartTime) > 0.175f) changeHeroMenu(1);
+                if (Input.GetKey(KeyCode.Escape) && (Time.time - arrowStartTime) > 0.175f)
+                {
+                    arrowStartTime = Time.time;
+                    _selectedMenu = menuState.skillSelect;
+                    _selectedSkill = 0;
+                    clearHeroMenu(true);
+                    setSkillMenu();
+                }
+                if (Input.GetKey(KeyCode.Return) && _hero[_selectedHero].getHP() != _hero[_selectedHero].getMaxHP() && (Time.time - arrowStartTime) > 0.175f)
+                {
+                    arrowStartTime = Time.time;
+                    _selectedMenu = menuState.healingInProgress;
+                    displaySkillMenuAnim(false, false);
+                    clearHeroMenu(true);
+                    clearSkillMenu();
+                    useSkill(_selectedSkill, _selectedHero);
+                }
+            }
+
+            //Select Enemy Menu
             if(_selectedMenu == menuState.enemySelect)
             {
                 if (Input.GetKey(KeyCode.UpArrow) && (Time.time - arrowStartTime) > 0.175f) changeEnemyMenu(-1);
@@ -168,21 +286,55 @@ public class GameManager : MonoBehaviour
                     arrowStartTime = Time.time;
                     _selectedMenu = menuState.attackInProgress;
                     clearEnemyMenu();
-                    PlayerGelud(_selectedEnemy);
+                    //regular attack
+                    if(_selectedSkill == -1) PlayerGelud(_selectedEnemy);
                 }
             }
         }
+
+        //Enemy's Turn
         if (_gameState == GameState.enemyTurn && !enemyAttackStarted)
         {
             StartCoroutine(SemuaEnemyGelud());
         }
+
+        //Battle End
         if (_gameState == GameState.battleEnd)
         {
             clearActionMenu();
             clearEnemyMenu();
+            clearHeroMenu(true);
+            clearSkillMenu();
         }
     }
 
+    void endPlayerTurn()
+    {
+        regenerateAP(true);
+        if (_hero.Count > 1) ; //AI turn
+        else _gameState = GameState.enemyTurn;
+    }
+
+    void regenerateAP(bool partial)
+    {
+        if (partial)
+        {
+            for (int i = 0; i < _hero.Count; i++)
+            {
+                if (_selectedSkill != -1 && i == _selectedHero) continue;
+                int newAP = _hero[i].getAP() + Random.Range(1, 6);
+                _hero[i].setAP(newAP > 20 ? 20 : newAP);
+            }
+        }
+        else
+        {
+            for (int i = 0; i < _hero.Count; i++)
+                _hero[i].setAP(20);
+        }
+        UpdateHPAP();
+    }
+
+    //Enemy satu2 gelud
     IEnumerator SemuaEnemyGelud()
     {
         enemyAttackStarted = true;
@@ -202,10 +354,41 @@ public class GameManager : MonoBehaviour
             _gameState = GameState.heroTurn;
             _selectedMenu = menuState.actionSelect;
             setActionMenu();
+            _selectedSkill = -1;
+            regenerateAP(true);
         }
         enemyAttackStarted = false;
     }
 
+    //Use Skill
+    void useSkill(int skillIndex, int targetIndex)
+    {
+        //Prayer of Healing
+        if(_selectedSkill == 0)
+        {
+            //pay AP cost
+            _hero[0].setAP(_hero[0].getAP() - _skillList._skillList[_selectedSkill]._APNeeded);
+
+            //healing effect
+            int addedHP = Random.Range(25, 60) * _hero[_selectedHero].getMaxHP() / 100;
+            int maxHP = _hero[_selectedHero].getMaxHP();
+            int newHP = addedHP + maxHP;
+            if (newHP > maxHP) newHP = maxHP;
+            _hero[_selectedHero].setHP(newHP);
+            StartCoroutine(healAnim(addedHP));
+        }
+    }
+
+    IEnumerator healAnim(int addedHP)
+    {
+        yield return new WaitForSeconds(0.5f);
+        InstantiateDamage(addedHP, _hero[_selectedHero].gameObject, true);
+        yield return new WaitForSeconds(1f);
+        updateGameCondition();
+        endPlayerTurn();
+    }
+
+    //Menus Navigations
     #region Action Menu
     void changeActionMenu(int dir)
     {
@@ -228,6 +411,68 @@ public class GameManager : MonoBehaviour
         foreach (Text t in action)
         {
             t.color = Color.white;
+        }
+    }
+    #endregion
+
+    #region Hero Menu
+    //hero menu for healing
+    void changeHeroMenu(int dir)
+    {
+        arrowStartTime = Time.time;
+        if (dir == 1) _selectedHero++;
+        else if (dir == -1) _selectedHero--;
+        if (_selectedHero < 0) _selectedHero = _hero.Count - 1;
+        if (_selectedHero >= _hero.Count) _selectedHero = 0;
+        setHeroMenu();
+    }
+
+    void setHeroMenu()
+    {
+        clearHeroMenu(false);
+        _heroNames[_selectedHero].color = _hero[_selectedHero].getHP() == _hero[_selectedHero].getMaxHP() ? Color.red : Color.yellow;
+    }
+
+    void clearHeroMenu(bool colorClear)
+    {
+        for(int i=0; i< _hero.Count; i++)
+        {
+            if (colorClear) _heroNames[i].color = Color.white;
+            else _heroNames[i].color = _hero[i].getHP() == _hero[i].getMaxHP() ? Color.gray : Color.white;
+        }
+    }
+    #endregion
+
+    #region Skill Menu
+    void changeSkillMenu(int dir)
+    {
+        arrowStartTime = Time.time;
+        if (dir == 1) _selectedSkill++;
+        else if (dir == -1) _selectedSkill--;
+        if (_selectedSkill < 0) _selectedSkill = _skill.Count - 1;
+        if (_selectedSkill >= _skill.Count) _selectedSkill = 0;
+        setSkillMenu();
+    }
+
+    void setSkillMenu()
+    {
+        clearSkillMenu();
+        if (_hero[0].getAP() < _skill[_selectedSkill]._APNeeded)
+            _skillNames[_selectedSkill].color = Color.red;
+        else
+            _skillNames[_selectedSkill].color = Color.yellow;
+        _skillDesc.text = _skill[_selectedSkill]._skillDesc.ToString();
+        _APNeeded.text = _skill[_selectedSkill]._APNeeded.ToString();
+    }
+
+    void clearSkillMenu()
+    {
+        foreach (Text t in _skillNames)
+        {
+            if (_hero[0].getAP() < _skill[_selectedSkill]._APNeeded)
+                t.color = Color.gray;
+            else
+                t.color = Color.white;
         }
     }
     #endregion
@@ -258,6 +503,7 @@ public class GameManager : MonoBehaviour
     }
     #endregion
 
+    //Battle
     #region Gelud
     //Player Gelud
     void PlayerGelud(int enemyIndex)
@@ -276,14 +522,10 @@ public class GameManager : MonoBehaviour
         yield return new WaitForSecondsRealtime(1f);
         _enemy[enemyIndex].takeDamageAnim();
         yield return new WaitForSecondsRealtime(0.8f);
-        InstantiateDamage(totalDamage, _enemy[enemyIndex].gameObject);
+        InstantiateDamage(totalDamage, _enemy[enemyIndex].gameObject, false);
         yield return new WaitForSecondsRealtime(1f);
         updateGameCondition();
-        if (_gameState != GameState.battleEnd)
-        {
-            if (_hero.Count > 1) ; //AI turn
-            else _gameState = GameState.enemyTurn;
-        }
+        if (_gameState != GameState.battleEnd) endPlayerTurn();
     }
 
     //Enemy Gelud
@@ -302,22 +544,18 @@ public class GameManager : MonoBehaviour
         yield return new WaitForSecondsRealtime(1f);
         _hero[heroIndex].takeDamageAnim();
         yield return new WaitForSecondsRealtime(0.8f);
-        InstantiateDamage(totalDamage, _hero[heroIndex].gameObject);
+        InstantiateDamage(totalDamage, _hero[heroIndex].gameObject, false);
         yield return new WaitForSecondsRealtime(1f);
         updateGameCondition();
         enemyAttackInProgress = false;
     }
     #endregion
 
+    //Update Game Condition
+    #region Update Game Condition
     void updateGameCondition()
     {
-        //update HP and AP
-        for (int i = 0; i < _hero.Count; i++)
-        {
-            heroStats[i].name.text = _hero[i]._name;
-            heroStats[i].HP.text = _hero[i].getHP().ToString() + "/" + _hero[i].getMaxHP().ToString();
-            heroStats[i].AP.text = _hero[i].getAP().ToString() + "/20";
-        }
+        UpdateHPAP();
         //check kondisi enemy
         for (int i = 0; i < _enemy.Count; i++)
         {
@@ -327,15 +565,7 @@ public class GameManager : MonoBehaviour
                 _enemy.Remove(_enemy[i]);
             }
         }
-
-        //update nama enemy baru
-        foreach (Text t in _enemyNames)
-            t.gameObject.SetActive(false);
-        for (int i = 0; i < _enemy.Count; i++)
-        {
-            _enemyNames[i].gameObject.SetActive(true);
-            _enemyNames[i].text = _enemy[i]._name;
-        }
+        updateEnemyNames();
 
         //cek kalo enemy udh ga ada semua = battle won
         if(_enemy.Count == 0)
@@ -344,6 +574,31 @@ public class GameManager : MonoBehaviour
             StartCoroutine(gameWinAnim());
         }
     }
+
+    //update HP and AP
+    void UpdateHPAP()
+    {
+        for (int i = 0; i < _hero.Count; i++)
+        {
+            heroStats[i].name.text = _hero[i]._name;
+            heroStats[i].HP.text = _hero[i].getHP().ToString() + "/" + _hero[i].getMaxHP().ToString();
+            heroStats[i].AP.text = _hero[i].getAP().ToString() + "/20";
+        }
+    }
+
+    //update nama enemy baru
+    void updateEnemyNames()
+    {    
+        foreach (Text t in _enemyNames)
+            t.gameObject.SetActive(false);
+        for (int i = 0; i < _enemy.Count; i++)
+        {
+            _enemyNames[i].gameObject.SetActive(true);
+            _enemyNames[i].text = _enemy[i]._name;
+        }
+    }
+
+    #endregion
 
     IEnumerator gameWinAnim()
     {
@@ -385,6 +640,8 @@ public class GameManager : MonoBehaviour
         });
     }
 
+
+    #region Enums
     public enum GameState
     {
         heroTurn,
@@ -397,8 +654,10 @@ public class GameManager : MonoBehaviour
         actionSelect,
         skillSelect,
         enemySelect,
-        attackInProgress
+        heroSelect,
+        attackInProgress,
+        healingInProgress
     };
+
+    #endregion
 }
-
-
