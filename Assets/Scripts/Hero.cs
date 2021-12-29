@@ -21,6 +21,9 @@ public class Hero : MonoBehaviour
     [SerializeField] private int _MDef;
     [SerializeField] private int _RDef;
 
+    public Weapon _equippedWeapon;
+    public Armor _equippedArmor;
+
     private GameObject _gameObject;
     private void Start()
     {
@@ -31,6 +34,7 @@ public class Hero : MonoBehaviour
     public int getHP() { return _HP; }
     public void setHP(int HP) { this._HP = HP; }
     public int getMaxHP() { return _MaxHP; }
+    public int getNetMaxHP() { return (_MaxHP + _equippedArmor._statsGiven[0] + _equippedWeapon._statsGiven[0]); }
     public void setMaxHP(int MaxHP) { this._MaxHP = MaxHP; }
     public int getAP() { return _AP; }
     public void setAP(int AP) { this._AP = AP; }
