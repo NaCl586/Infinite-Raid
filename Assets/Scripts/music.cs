@@ -8,6 +8,7 @@ public class music : MonoBehaviour
     public AudioClip _battleMusic;
     public AudioClip _fanfareMusic;
     public AudioClip _battleLostMusic;
+    public AudioClip _preBattle;
 
     // Start is called before the first frame update
     void Start() { _audioSource = this.GetComponent<AudioSource>(); }
@@ -15,6 +16,7 @@ public class music : MonoBehaviour
     public void battle() { playMusic(_battleMusic, true); }
     public void fanfare() { playMusic(_fanfareMusic, true); }
     public void gameOver() { playMusic(_battleLostMusic, false); }
+    public void preBattle() { playMusic(_preBattle, true); }
 
     public void playMusic(AudioClip _audioClip, bool loop)
     {
