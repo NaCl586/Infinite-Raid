@@ -16604,33 +16604,42 @@ MonoBehaviour:
   - _skillName: Prayer of Healing
     _skillDesc: Partially heal one party member
     _APNeeded: 13
+    _usableWeapons: 00000000
   - _skillName: Perseverance
     _skillDesc: Increase party defense by 30 for 3 turns
     _APNeeded: 10
+    _usableWeapons: 03000000
   - _skillName: Sunlance Strike
     _skillDesc: Deal 500% RDef to a single enemy
     _APNeeded: 20
+    _usableWeapons: 02000000
   - _skillName: Bird of prey
     _skillDesc: Blind enemy for one turn
     _APNeeded: 8
+    _usableWeapons: 01000000
   - _skillName: Chrono Slash
     _skillDesc: Stop the time, slice toward one enemy and deal 150% MAtk
     _APNeeded: 10
+    _usableWeapons: 00000000
   - _skillName: Midnight Elegance
     _skillDesc: Immediately attack an enemy with 120% MAtk and ignore evade chance
       from enemy
     _APNeeded: 18
+    _usableWeapons: 000000000300000004000000
   - _skillName: Lunar Blessing
     _skillDesc: Partially heal all party members
     _APNeeded: 15
+    _usableWeapons: 02000000
   - _skillName: Firestorm
     _skillDesc: Summon storm of fire towards enemies that damage an enemy and decrease
       their defense
     _APNeeded: 20
+    _usableWeapons: 01000000
   - _skillName: Daisycutter
     _skillDesc: Immediately destroy the earth make earth self rumbling and deal damage
       to an enemy
     _APNeeded: 20
+    _usableWeapons: 04000000
 --- !u!4 &1307088591
 Transform:
   m_ObjectHideFlags: 0
@@ -20153,8 +20162,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: 0.90008694, y: -26.538696}
-  m_SizeDelta: {x: 553.06116, y: 49.70408}
+  m_AnchoredPosition: {x: 3.8, y: -17.396004}
+  m_SizeDelta: {x: 556.7616, y: 71.91226}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &1613718224
 MonoBehaviour:
@@ -25149,6 +25158,27 @@ MonoBehaviour:
   - {fileID: 267162552}
   - {fileID: 335201324}
   - {fileID: 1592733564}
+  _skillNames:
+  - {fileID: 1113897053}
+  - {fileID: 1523203752}
+  - {fileID: 825152402}
+  - {fileID: 1628484066}
+  - {fileID: 1573390141}
+  - {fileID: 760344514}
+  - {fileID: 1483225826}
+  - {fileID: 1717722442}
+  _skillImages:
+  - {fileID: 1864293862}
+  - {fileID: 1464730510}
+  - {fileID: 1295376020}
+  - {fileID: 1820736894}
+  - {fileID: 1747684960}
+  - {fileID: 1052487656}
+  - {fileID: 770344840}
+  - {fileID: 1464730510}
+  - {fileID: 1977582121}
+  - {fileID: 158847301}
+  _skillCaption: {fileID: 1613718226}
 --- !u!1001 &2000779331
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -25568,7 +25598,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
   m_AnchoredPosition: {x: -81.2, y: -8.423004}
-  m_SizeDelta: {x: 713.3222, y: 74.071304}
+  m_SizeDelta: {x: 713.3222, y: 72.4091}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &2018794285
 MonoBehaviour:
@@ -25622,7 +25652,7 @@ MonoBehaviour:
       m_Calls: []
   m_FontData:
     m_Font: {fileID: 12800000, guid: 79a6d80627f8c774ba1688f42fe33a61, type: 3}
-    m_FontSize: 30
+    m_FontSize: 26
     m_FontStyle: 1
     m_BestFit: 0
     m_MinSize: 2

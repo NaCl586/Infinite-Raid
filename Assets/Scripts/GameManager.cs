@@ -159,18 +159,7 @@ public class GameManager : MonoBehaviour
         }
 
         //init skill list
-        _initSkillCount = 1;
-        foreach (Text t in _skillNames)
-            t.gameObject.SetActive(false);
-
-        //prayer of healing
-        _skill.Add(_skillList._skillList[0]);
-
-        for (int i = 0; i < _initSkillCount; i++)
-        {
-            _skillNames[i].gameObject.SetActive(true);
-            _skillNames[i].text = _skill[i]._skillName;
-        }
+        //_initSkillCount = 1;
 
         //UI Init
         _levelUpBar.SetActive(false);
@@ -220,11 +209,29 @@ public class GameManager : MonoBehaviour
 
             _skillBar.transform.DOMoveX(_skillBar.transform.position.x + 11.5f, dur);
             _upperBar.transform.DOMoveY(_upperBar.transform.position.y - 2.25f, dur);
+
+            foreach(int n in _hero[0]._equippedArmor._skills)
+            {
+                if(n != -1) _skill.Add(_skillList._skillList[n]);
+            }
+
+            foreach (Text t in _skillNames)
+                t.gameObject.SetActive(false);
+
+            for (int i = 0; i < _skill.Count; i++)
+            {
+                _skillNames[i].gameObject.SetActive(true);
+                _skillNames[i].text = _skill[i]._skillName;
+            }
+
         }
         else
         {
             _skillBar.transform.DOMoveX(_skillBar.transform.position.x - 11.5f, dur).OnComplete(() => {_skillBar.SetActive(false); });
             _upperBar.transform.DOMoveY(_upperBar.transform.position.y + 2.25f, dur).OnComplete(() => { _upperBar.SetActive(false); });
+
+            //clear all, then add idx 0 again
+            _skill.Clear();
         }
     }
 
@@ -597,6 +604,8 @@ public class GameManager : MonoBehaviour
     void setSkillMenu()
     {
         clearSkillMenu();
+        if (_skill.Count == 0) return;
+
         if (_hero[0].getAP() < _skill[_selectedSkill]._APNeeded)
             _skillNames[_selectedSkill].color = Color.red;
         else
@@ -607,6 +616,8 @@ public class GameManager : MonoBehaviour
 
     void clearSkillMenu()
     {
+        if (_skill.Count == 0) return;
+
         foreach (Text t in _skillNames)
         {
             if (_hero[0].getAP() < _skill[_selectedSkill]._APNeeded)
@@ -930,6 +941,10 @@ public class GameManager : MonoBehaviour
                  PlayerPrefs.SetInt("HeroArmorIdx" + i + "_asIdx" + j, h._equippedArmor._statsGiven[j]);
             }
 
+            for (int j = 0; j < 3; j++) //copy tiap skills
+            {
+                PlayerPrefs.SetInt("HeroSkills" + i + "_asIdx" + j, h._equippedArmor._skills[j]);
+            }
         }
 
         PlayerPrefs.SetInt("Wave", _wave + 1);
