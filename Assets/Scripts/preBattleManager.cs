@@ -69,11 +69,17 @@ public class preBattleManager : MonoBehaviour
     public Text _caption;
     public Text[] _choices;
 
+    [Header("Skill Select Menu References")]
+    public Text[] _skillNames;
+    public Image[] _skillImages;
+    public Text _skillCaption;
+
     //selections
     private int _totalAlivePlayers;
     private int _selectedActionMenu;
     private int _selectedHero;
     private int _selectedExitMenu;
+    private int _selectedSkill;
 
     private List<int> _aliveHeroIdx = new List<int>();
 
@@ -89,6 +95,9 @@ public class preBattleManager : MonoBehaviour
         
         if (PlayerPrefs.GetInt("GameStarted", 0) == 0)
         {
+            //delete previous data
+            PlayerPrefs.DeleteAll();
+
             //generate first hero stats
             int index = 0; //first hero index
             
@@ -139,8 +148,7 @@ public class preBattleManager : MonoBehaviour
                 
                 int statRNG = Random.Range(min, max);
                 
-                w._statsGiven[rng] = statRNG;
-                
+                w._statsGiven[rng] = statRNG;                
             }
             
             //armor
@@ -180,8 +188,14 @@ public class preBattleManager : MonoBehaviour
                 a._statsGiven[rng] = statRNG;
             }
 
+            //skill
+            h._equippedArmor._skills[0] = 0; //skill healing pasti ada
+            h._equippedArmor._skills[2] = -1; //sword only have 1 skill
+            h._equippedArmor._skills[1] = Random.Range(4, 6); //diantara skill idx 4 or 5
+
             //karena masih first playthrough, maxHP samakan dengan HP
-            h.setHP(h.getNetMaxHP()); 
+            h.setHP(h.getNetMaxHP());
+            PlayerPrefs.SetInt("HeroHP" + index, h.getNetMaxHP());
 
             //adding to hero list
             _gameManager._hero.Add(h); 
@@ -239,6 +253,12 @@ public class preBattleManager : MonoBehaviour
                     h._equippedArmor._statsGiven[j] = PlayerPrefs.GetInt("HeroArmorIdx" + index + "_asIdx" + j, 0);
                 }
 
+                //loading skills
+                for(int j = 0; j < 3; j++)
+                {
+                    h._equippedArmor._skills[j] = PlayerPrefs.GetInt("HeroSkills" + index + "_asIdx" + j, -1);
+                }
+
                 //adding to hero list
                 _gameManager._hero.Add(h);
 
@@ -262,6 +282,8 @@ public class preBattleManager : MonoBehaviour
         resetText(_actionMenuText);
         _actionMenuText[2].text = "Start Battle (Wave " + PlayerPrefs.GetInt("Wave", 1) + ")";
         _actionMenuText[_selectedActionMenu].color = Color.yellow;
+
+        _selectedSkill = 0;
     }
 
     public void updateHeroMenu()
@@ -382,6 +404,13 @@ public class preBattleManager : MonoBehaviour
             else if (i == 2) _equippableStats._armorStats[count].text = "RDef:    + " + value;
             count++;
         }
+
+        //Skills
+        for(int i = 0; i < 3; i++)
+        {
+            if (a._skills[i] != -1) _skills[i].text = _skillList._skillList[a._skills[i]]._skillName;
+            else _skills[i].text = "=";
+        }
     }
 
     private float arrowStartTime;
@@ -409,6 +438,7 @@ public class preBattleManager : MonoBehaviour
                 resetText(_actionMenuText);
                 setActionMenu();
             }
+
             //selection
             if(Input.GetKey(KeyCode.Return) && (Time.time - arrowStartTime) > 0.175f)
             {
@@ -477,7 +507,7 @@ public class preBattleManager : MonoBehaviour
         }
 
         //preview hero sebelum swap/change stat
-        if(_state == menuState.heroPreview)
+        if (_state == menuState.heroPreview)
         {
             //Navigation
             if (Input.GetKey(KeyCode.UpArrow) && (Time.time - arrowStartTime) > 0.175f)
@@ -497,7 +527,7 @@ public class preBattleManager : MonoBehaviour
                 showHeroMenu();
                 setCursorPosition();
             }
-            if (Input.GetKey(KeyCode.Escape))
+            if (Input.GetKey(KeyCode.Escape) && (Time.time - arrowStartTime) > 0.175f)
             {
                 updateArrowTime();
                 _cursor.SetActive(false);
@@ -506,7 +536,70 @@ public class preBattleManager : MonoBehaviour
                 _isSwappingEquipment = false;
                 _actionMenuText[_selectedActionMenu].color = Color.yellow;
             }
+            if (Input.GetKey(KeyCode.Return) && (Time.time - arrowStartTime) > 0.175f)
+            {
+                updateArrowTime();
+                _cursor.SetActive(false);
+                if (_isChangingSkill)
+                {
+                    _state = menuState.skillSelectMenu;
+                    _skillSelectMenu.SetActive(true);
+                    selectSkill(_selectedSkill);
+                }
+                else if (_isSwappingEquipment)
+                {
+                    _state = menuState.sideActionMenu;
+                }
+            }
         }
+
+        //skill select
+        if(_state == menuState.skillSelectMenu)
+        {
+            if (Input.GetKey(KeyCode.Escape) && (Time.time - arrowStartTime) > 0.175f)
+            {
+                updateArrowTime();
+                _state = menuState.heroPreview;
+                _skillSelectMenu.SetActive(false);
+                _cursor.SetActive(true);
+            }
+            if (Input.GetKey(KeyCode.UpArrow) && (Time.time - arrowStartTime) > 0.175f)
+            {
+                updateArrowTime();
+                _selectedSkill--;
+                if (_selectedSkill < 0) _selectedSkill = 7;
+                selectSkill(_selectedSkill);
+            }
+            if (Input.GetKey(KeyCode.DownArrow) && (Time.time - arrowStartTime) > 0.175f)
+            {
+                updateArrowTime();
+                _selectedSkill++;
+                if (_selectedSkill >= 8) _selectedSkill = 0;
+                selectSkill(_selectedSkill);
+            }
+        }
+    }
+
+    public void selectSkill(int index)
+    {
+        _skillCaption.text = _skillList._skillList[index + 1]._skillDesc;
+        
+        bool[] valid = new bool[8];
+        for (int i = 0; i < _skillNames.Length; i++)
+        {
+            valid[i] = false;
+            _skillNames[i].color = Color.gray;
+            foreach (int j in _skillList._skillList[i + 1]._usableWeapons)
+            {
+                if (j == PlayerPrefs.GetInt("HeroWeapon" + index, 0))
+                {
+                    valid[i] = true;
+                    _skillNames[i].color = Color.white;
+                    break;
+                }
+            }
+        }
+        _skillNames[index].color = valid[index] ? Color.yellow : Color.red;
     }
 
     public void setCursorPosition()

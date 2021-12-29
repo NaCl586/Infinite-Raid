@@ -14,7 +14,8 @@ public class Armor : MonoBehaviour
     [SerializeField] private rangedInt _RDef;
 
     //stats HP MDef RDef
-    public int[] _statsGiven = {0,0,0};
+    public int[] _statsGiven = { 0, 0, 0 };
+    public int[] _skills = { 0, -1, -1 };
 
     //getter
     public rangedInt getHP() { return this._HP; }
