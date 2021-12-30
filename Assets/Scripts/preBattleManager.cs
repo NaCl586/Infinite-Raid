@@ -64,6 +64,7 @@ public class preBattleManager : MonoBehaviour
     public CharaStats _charaStats;
     public EquippableStats _equippableStats;
     public Text[] _skills = new Text[3];
+    public Text[] _skillsAP = new Text[3];
 
     [Header("Side Action Menu References")]
     public Text _caption;
@@ -73,6 +74,7 @@ public class preBattleManager : MonoBehaviour
     public Text[] _skillNames;
     public Image[] _skillImages;
     public Text _skillCaption;
+    public Text[] _skillMenuAP;
 
     //selections
     private int _totalAlivePlayers;
@@ -81,6 +83,9 @@ public class preBattleManager : MonoBehaviour
     private int _selectedExitMenu;
     private int _selectedSkill;
     private int _selectedSkillToReplace;
+    private int _selectedWhatToSwapMenu;
+    private int _selectedWhoToSwapWith;
+    private swapType _swapType;
 
     private List<int> _aliveHeroIdx = new List<int>();
 
@@ -332,8 +337,13 @@ public class preBattleManager : MonoBehaviour
             _heroStatMenu[i]._AP.text = "AP "+initAP+"/20";
 
             //Weapon and Armor
-            int initWeaponIdx = PlayerPrefs.GetInt("HeroWeaponIdx" + index, 0);
-            int initArmorIdx = PlayerPrefs.GetInt("HeroArmorIdx" + index, 0);
+            int initWeaponIdx = 0;
+            for(int j=0;j<_gameManager._equippable._weapons.Length;j++)
+                if (w._name == _gameManager._equippable._weapons[j]._name) initWeaponIdx = j;
+
+            int initArmorIdx = 0;
+            for (int j = 0; j < _gameManager._equippable._armors.Length; j++)
+                if (a._name == _gameManager._equippable._armors[j]._name) initArmorIdx = j;
 
             _heroStatMenu[i]._armorIcon.color = _heroStatMenu[i]._weaponIcon.color = Color.white;
 
@@ -347,14 +357,19 @@ public class preBattleManager : MonoBehaviour
 
     public void showHeroMenu()
     {
-        int index = _aliveHeroIdx[_selectedHero];
+        int index;
+
+        if (_state != menuState.swapWithWho) index = _aliveHeroIdx[_selectedHero];
+        else index = _aliveHeroIdx[_selectedWhoToSwapWith];
 
         //Chara Stats
         int initHP = PlayerPrefs.GetInt("HeroHP" + index, 100);
         int initMaxHP = PlayerPrefs.GetInt("HeroMaxHP" + index, 100);
         int initAP = PlayerPrefs.GetInt("HeroAP" + index, 20);
 
-        Hero _hero = _gameManager._hero[_selectedHero];
+        Hero _hero;
+        if (_state != menuState.swapWithWho) _hero = _gameManager._hero[_selectedHero];
+        else _hero = _gameManager._hero[_selectedWhoToSwapWith];
 
         Weapon w = _hero._equippedWeapon;
         Armor a = _hero._equippedArmor;
@@ -391,11 +406,13 @@ public class preBattleManager : MonoBehaviour
             if (count >= _equippableStats._weaponStats.Length) break;
 
             int value = w._statsGiven[i];
-            if (i == 0) _equippableStats._weaponStats[count].text = "HP        + " + value;
-            else if (i == 1) _equippableStats._weaponStats[count].text = "MAtk.  + " + value;
-            else if (i == 2) _equippableStats._weaponStats[count].text = "RAtk.   + " + value;
-            else if (i == 3) _equippableStats._weaponStats[count].text = "MDef:   + " + value;
-            else if (i == 4) _equippableStats._weaponStats[count].text = "RDef:    + " + value;
+            string negSign = value < 0 ? "-" : "+";
+            value = Mathf.Abs(value);
+            if (i == 0) _equippableStats._weaponStats[count].text = "HP        "+ negSign + " " + value;
+            else if (i == 1) _equippableStats._weaponStats[count].text = "MAtk.  " + negSign + " " + value;
+            else if (i == 2) _equippableStats._weaponStats[count].text = "RAtk.   " + negSign + " " + value;
+            else if (i == 3) _equippableStats._weaponStats[count].text = "MDef:   " + negSign + " " + value;
+            else if (i == 4) _equippableStats._weaponStats[count].text = "RDef:    " + negSign + " " + value;
             count++;
         }
 
@@ -410,17 +427,30 @@ public class preBattleManager : MonoBehaviour
             if (count >= _equippableStats._armorStats.Length) break;
 
             int value = a._statsGiven[i];
-            if (i == 0) _equippableStats._armorStats[count].text = "HP        + " + value;
-            else if (i == 1) _equippableStats._armorStats[count].text = "MDef:   + " + value;
-            else if (i == 2) _equippableStats._armorStats[count].text = "RDef:    + " + value;
+            string negSign = value < 0 ? "-" : "+";
+            value = Mathf.Abs(value);
+            if (i == 0) _equippableStats._armorStats[count].text = "HP        " + negSign + " " + value;
+            else if (i == 1) _equippableStats._armorStats[count].text = "MDef:   " + negSign + " " + value;
+            else if (i == 2) _equippableStats._armorStats[count].text = "RDef:    " + negSign + " " + value;
             count++;
         }
 
         //Skills
-        for(int i = 0; i < 3; i++)
+        foreach (Text t in _skills) t.text = "";
+        foreach (Text t in _skillsAP) t.text = "";
+
+        for (int i = 0; i < a._slots; i++)
         {
-            if (a._skills[i] != -1) _skills[i].text = _skillList._skillList[a._skills[i]]._skillName;
-            else _skills[i].text = "";
+            if (a._skills[i] != -1)
+            {
+                _skills[i].text = _skillList._skillList[a._skills[i]]._skillName;
+                _skillsAP[i].text = _skillList._skillList[a._skills[i]]._APNeeded.ToString();
+            }
+            else
+            {
+                _skills[i].text = "[Empty]";
+                _skillsAP[i].text = "-";
+            }
         }
     }
 
@@ -430,7 +460,7 @@ public class preBattleManager : MonoBehaviour
     void Update()
     {
         //Action Menu
-        if(_state == menuState.actionMenu)
+        if (_state == menuState.actionMenu)
         {
             //Navigation
             if (Input.GetKey(KeyCode.UpArrow) && (Time.time - arrowStartTime) > 0.175f)
@@ -493,7 +523,9 @@ public class preBattleManager : MonoBehaviour
                 }
             }
         }
-        if(_state == menuState.promptExit)
+
+        //Prompt exit
+        if (_state == menuState.promptExit)
         {
             if ((Input.GetKey(KeyCode.UpArrow) || Input.GetKey(KeyCode.DownArrow)) && (Time.time - arrowStartTime) > 0.175f)
             {
@@ -550,7 +582,6 @@ public class preBattleManager : MonoBehaviour
             if (Input.GetKey(KeyCode.Return) && (Time.time - arrowStartTime) > 0.175f)
             {
                 updateArrowTime();
-                _cursor.SetActive(false);
                 if (_isChangingSkill)
                 {
                     _state = menuState.skillSelectMenu;
@@ -559,13 +590,140 @@ public class preBattleManager : MonoBehaviour
                 }
                 else if (_isSwappingEquipment)
                 {
-                    _state = menuState.sideActionMenu;
+                    _state = menuState.whatToSwapMenu;
+                    _sideActionMenu.SetActive(true);
+                    resetText(_choices);
+                    _selectedWhatToSwapMenu = 0;
+                    _choices[_selectedWhatToSwapMenu].color = Color.yellow;
+                    _caption.text = "What to swap?";
+                    _choices[0].text = "Weapons";
+                    _choices[1].text = "Armors";
+                    _choices[2].text = "Both";
                 }
             }
         }
 
+        //what to swap menu
+        if (_state == menuState.whatToSwapMenu)
+        {
+            if (Input.GetKey(KeyCode.UpArrow) && (Time.time - arrowStartTime) > 0.175f)
+            {
+                updateArrowTime();
+                _selectedWhatToSwapMenu--;
+                if (_selectedWhatToSwapMenu < 0) _selectedWhatToSwapMenu = 2;
+                resetText(_choices);
+                _choices[_selectedWhatToSwapMenu].color = Color.yellow;
+            }
+            if (Input.GetKey(KeyCode.DownArrow) && (Time.time - arrowStartTime) > 0.175f)
+            {
+                updateArrowTime();
+                _selectedWhatToSwapMenu++;
+                if (_selectedWhatToSwapMenu >= 3) _selectedWhatToSwapMenu = 0;
+                resetText(_choices);
+                _choices[_selectedWhatToSwapMenu].color = Color.yellow;
+            }
+            if (Input.GetKey(KeyCode.Escape) && (Time.time - arrowStartTime) > 0.175f)
+            {
+                updateArrowTime();
+                resetText(_choices);
+                _sideActionMenu.SetActive(false);
+                _state = menuState.heroPreview;
+                _cursor.SetActive(true);
+                setCursorPosition();
+            }
+            if (Input.GetKey(KeyCode.Return) && (Time.time - arrowStartTime) > 0.175f)
+            {
+                updateArrowTime();
+
+                if (_selectedWhatToSwapMenu == 0) _swapType = swapType.weapons;
+                else if (_selectedWhatToSwapMenu == 1) _swapType = swapType.armors;
+                else if (_selectedWhatToSwapMenu == 2) _swapType = swapType.both;
+
+                _heroStatMenu[_selectedHero]._gameObject.GetComponent<Image>().color = new Color(0.45f, 0.45f, 0.45f, 0.75f);
+                _heroStatMenu[_selectedHero]._name.color = _heroStatMenu[_selectedHero]._HP.color = _heroStatMenu[_selectedHero]._AP.color = _heroStatMenu[_selectedHero]._armorName.color = _heroStatMenu[_selectedHero]._weaponName.color = Color.gray;
+
+                _state = menuState.swapWithWho;
+                _selectedWhoToSwapWith = 0;
+                if (_selectedWhoToSwapWith == _selectedHero) _selectedWhoToSwapWith++;
+                showHeroMenu();
+                setCursorPosition();
+            }
+        }
+
+        //swap with who menu
+        if (_state == menuState.swapWithWho)
+        {
+            if (Input.GetKey(KeyCode.UpArrow) && (Time.time - arrowStartTime) > 0.175f)
+            {
+                updateArrowTime();
+                _selectedWhoToSwapWith--;
+                if (_selectedWhoToSwapWith == _selectedHero) _selectedWhoToSwapWith--;
+                if (_selectedWhoToSwapWith < 0) _selectedWhoToSwapWith = _totalAlivePlayers - 1;
+                showHeroMenu();
+                setCursorPosition();
+
+            }
+            if (Input.GetKey(KeyCode.DownArrow) && (Time.time - arrowStartTime) > 0.175f)
+            {
+                updateArrowTime();
+                _selectedWhoToSwapWith++;
+                if (_selectedWhoToSwapWith >= _totalAlivePlayers) _selectedWhoToSwapWith = 0;
+                if (_selectedWhoToSwapWith == _selectedHero) _selectedWhoToSwapWith++;
+                showHeroMenu();
+                setCursorPosition();
+            }
+            if (Input.GetKey(KeyCode.Escape) && (Time.time - arrowStartTime) > 0.175f)
+            {
+                updateArrowTime();
+                _state = menuState.whatToSwapMenu;
+                showHeroMenu();
+                setCursorPosition();
+                _heroStatMenu[_selectedHero]._gameObject.GetComponent<Image>().color = new Color(1f, 1f, 1f, 0.75f);
+                _heroStatMenu[_selectedHero]._name.color = _heroStatMenu[_selectedHero]._HP.color = _heroStatMenu[_selectedHero]._AP.color = _heroStatMenu[_selectedHero]._armorName.color = _heroStatMenu[_selectedHero]._weaponName.color = Color.white;
+            }
+            if (Input.GetKey(KeyCode.Return) && (Time.time - arrowStartTime) > 0.175f)
+            {
+                arrowStartTime = Time.time;
+                _sfx.confirm();
+
+                _heroStatMenu[_selectedHero]._gameObject.GetComponent<Image>().color = new Color(1f, 1f, 1f, 0.75f);
+                _heroStatMenu[_selectedHero]._name.color = _heroStatMenu[_selectedHero]._HP.color = _heroStatMenu[_selectedHero]._AP.color = _heroStatMenu[_selectedHero]._armorName.color = _heroStatMenu[_selectedHero]._weaponName.color = Color.white;
+                _sideActionMenu.SetActive(false);
+
+                //swap process
+                if(_swapType == swapType.weapons || _swapType == swapType.both)
+                {
+                    Weapon _tempWeapon = _gameManager._hero[_selectedHero]._equippedWeapon;
+                    _gameManager._hero[_selectedHero]._equippedWeapon = _gameManager._hero[_selectedWhoToSwapWith]._equippedWeapon;
+                    _gameManager._hero[_selectedWhoToSwapWith]._equippedWeapon = _tempWeapon;
+                }
+                if (_swapType == swapType.armors || _swapType == swapType.both)
+                {
+                    Armor _tempArmor = _gameManager._hero[_selectedHero]._equippedArmor;
+                    _gameManager._hero[_selectedHero]._equippedArmor = _gameManager._hero[_selectedWhoToSwapWith]._equippedArmor;
+                    _gameManager._hero[_selectedWhoToSwapWith]._equippedArmor = _tempArmor;
+
+                    //reset skills
+                    _gameManager._hero[_selectedHero]._equippedArmor._skills[0] = 0;
+                    _gameManager._hero[_selectedHero]._equippedArmor._skills[1] = _gameManager._hero[_selectedHero]._equippedArmor._skills[2] = -1;
+
+                    _gameManager._hero[_selectedWhoToSwapWith]._equippedArmor._skills[0] = 0;
+                    _gameManager._hero[_selectedWhoToSwapWith]._equippedArmor._skills[1] = _gameManager._hero[_selectedWhoToSwapWith]._equippedArmor._skills[2] = -1;
+                }
+
+                _cursor.SetActive(false);
+                _state = menuState.actionMenu;
+
+                updateHeroMenu();
+                showHeroMenu();
+
+                _isSwappingEquipment = false;
+                _actionMenuText[_selectedActionMenu].color = Color.yellow;
+            }
+        }
+
         //skill select
-        if(_state == menuState.skillSelectMenu)
+        if (_state == menuState.skillSelectMenu)
         {
             if (Input.GetKey(KeyCode.Escape) && (Time.time - arrowStartTime) > 0.175f)
             {
@@ -602,7 +760,7 @@ public class preBattleManager : MonoBehaviour
         }
 
         //selecting what skill to replace
-        if(_state == menuState.sideActionMenu)
+        if (_state == menuState.sideActionMenu)
         {
             if (Input.GetKey(KeyCode.UpArrow) && (Time.time - arrowStartTime) > 0.175f)
             {
@@ -650,6 +808,10 @@ public class preBattleManager : MonoBehaviour
         {
             valid[i] = false;
             _skillNames[i].color = Color.gray;
+            _skillNames[i].text = _skillList._skillList[i + 1]._skillName;
+
+            _skillMenuAP[i].color = Color.gray;
+            _skillMenuAP[i].text = _skillList._skillList[i + 1]._APNeeded.ToString();
 
             if (_onlyOneSkill) continue;
 
@@ -665,17 +827,22 @@ public class preBattleManager : MonoBehaviour
             }
             if (flag) continue;
 
+            int initWeaponIdx = 0;
+            for (int j = 0; j < _gameManager._equippable._weapons.Length; j++)
+                if (_gameManager._hero[_selectedHero]._equippedWeapon._name == _gameManager._equippable._weapons[j]._name) initWeaponIdx = j;
+
+
             foreach (int j in _skillList._skillList[i + 1]._usableWeapons)
             {
-                if (j == PlayerPrefs.GetInt("HeroWeapon" + index, 0))
+                if (j == initWeaponIdx)
                 {
                     valid[i] = true;
-                    _skillNames[i].color = Color.white;
+                    _skillNames[i].color = _skillMenuAP[i].color = Color.white;
                     break;
                 }
             }
         }
-        _skillNames[index].color = valid[index] ? Color.yellow : Color.red;
+        _skillNames[index].color = _skillMenuAP[index].color = valid[index] ? Color.yellow : Color.red;
 
         if (_onlyOneSkill) return false;
         return valid[index];
@@ -683,7 +850,8 @@ public class preBattleManager : MonoBehaviour
 
     public void setCursorPosition()
     {
-        _cursor.transform.position = _heroStatMenu[_selectedHero]._gameObject.transform.position + new Vector3(-4.375f, 1.5f, 0);
+        if(_state != menuState.swapWithWho) _cursor.transform.position = _heroStatMenu[_selectedHero]._gameObject.transform.position + new Vector3(-4.375f, 1.5f, 0);
+        else _cursor.transform.position = _heroStatMenu[_selectedWhoToSwapWith]._gameObject.transform.position + new Vector3(-4.375f, 1.5f, 0);
     }
 
     public void updateArrowTime()
@@ -708,6 +876,13 @@ public class preBattleManager : MonoBehaviour
         _actionMenuText[_selectedActionMenu].color = red ? Color.red : Color.yellow;
     }
 
+    public enum swapType
+    {
+        weapons,
+        armors,
+        both,
+    }
+
     public enum menuState
     {
         none,
@@ -716,6 +891,8 @@ public class preBattleManager : MonoBehaviour
         heroPreview,
         skillSelectMenu,
         sideActionMenu,
+        whatToSwapMenu,
+        swapWithWho,
         promptExit,
     }
 }

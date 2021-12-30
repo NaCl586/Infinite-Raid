@@ -118,25 +118,19 @@ public class GameManager : MonoBehaviour
 
     public void instantiateNewHero()
     {
+        //preventive measure supaya gak lebih
+        if (_hero.Count == _heroPool.Length) return;
+
         int _index = Random.Range(0, 3+1);
-        while (true)
+
+        //kalo ada yg sama, maju satu nomor, terus cek ulang
+        for (int i = 0; i < _hero.Count; i++)
         {
-            bool flag = false;
-            //kalo ada yg sama, maju satu nomor, terus cek ulang
-            for(int i = 0; i < _hero.Count; i++)
+            while (_hero[i]._name == _heroPool[_index]._name)
             {
-                if(_hero[i]._name == _heroPool[_index]._name)
-                {
-                    _index++;
-                    _index %= _heroPool.Length;
-                    break;
-                }
-                else
-                {
-                    flag = true;
-                }
+                _index++;
+                _index %= _heroPool.Length;
             }
-            if (flag) break;
         }
 
         Hero h = Instantiate(_heroPool[_index]); //first hero selalu sorath
