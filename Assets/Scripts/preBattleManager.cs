@@ -406,13 +406,26 @@ public class preBattleManager : MonoBehaviour
             if (count >= _equippableStats._weaponStats.Length) break;
 
             int value = w._statsGiven[i];
+            bool negative = value < 0;
             string negSign = value < 0 ? "-" : "+";
             value = Mathf.Abs(value);
-            if (i == 0) _equippableStats._weaponStats[count].text = "HP        "+ negSign + " " + value;
-            else if (i == 1) _equippableStats._weaponStats[count].text = "MAtk.  " + negSign + " " + value;
-            else if (i == 2) _equippableStats._weaponStats[count].text = "RAtk.   " + negSign + " " + value;
-            else if (i == 3) _equippableStats._weaponStats[count].text = "MDef:   " + negSign + " " + value;
-            else if (i == 4) _equippableStats._weaponStats[count].text = "RDef:    " + negSign + " " + value;
+
+            if (negative)
+            {
+                if (i == 0) _equippableStats._weaponStats[count].text = "HP        <color=red>" + negSign + " " + value + "</color>";
+                else if (i == 1) _equippableStats._weaponStats[count].text = "MAtk.  <color=red>" + negSign + " " + value + "</color>";
+                else if (i == 2) _equippableStats._weaponStats[count].text = "RAtk.   <color=red>" + negSign + " " + value + "</color>";
+                else if (i == 3) _equippableStats._weaponStats[count].text = "MDef:   <color=red>" + negSign + " " + value + "</color>";
+                else if (i == 4) _equippableStats._weaponStats[count].text = "RDef:    <color=red>" + negSign + " " + value + "</color>";
+            }
+            else
+            {
+                if (i == 0) _equippableStats._weaponStats[count].text = "HP        <color=lime>" + negSign + " " + value + "</color>";
+                else if (i == 1) _equippableStats._weaponStats[count].text = "MAtk.  <color=lime>" + negSign + " " + value + "</color>";
+                else if (i == 2) _equippableStats._weaponStats[count].text = "RAtk.   <color=lime>" + negSign + " " + value + "</color>";
+                else if (i == 3) _equippableStats._weaponStats[count].text = "MDef:   <color=lime>" + negSign + " " + value + "</color>";
+                else if (i == 4) _equippableStats._weaponStats[count].text = "RDef:    <color=lime>" + negSign + " " + value + "</color>";
+            }
             count++;
         }
 
@@ -427,11 +440,23 @@ public class preBattleManager : MonoBehaviour
             if (count >= _equippableStats._armorStats.Length) break;
 
             int value = a._statsGiven[i];
+            bool negative = value < 0;
             string negSign = value < 0 ? "-" : "+";
             value = Mathf.Abs(value);
-            if (i == 0) _equippableStats._armorStats[count].text = "HP        " + negSign + " " + value;
-            else if (i == 1) _equippableStats._armorStats[count].text = "MDef:   " + negSign + " " + value;
-            else if (i == 2) _equippableStats._armorStats[count].text = "RDef:    " + negSign + " " + value;
+
+            if (negative)
+            {
+                if (i == 0) _equippableStats._armorStats[count].text = "HP        <color=red>" + negSign + " " + value + "</color>";
+                else if (i == 1) _equippableStats._armorStats[count].text = "MDef:   <color=red>" + negSign + " " + value + "</color>";
+                else if (i == 2) _equippableStats._armorStats[count].text = "RDef:    <color=red>" + negSign + " " + value + "</color>";
+            }
+            else
+            {
+                if (i == 0) _equippableStats._armorStats[count].text = "HP        <color=lime>" + negSign + " " + value + "</color>";
+                else if (i == 1) _equippableStats._armorStats[count].text = "MDef:   <color=lime>" + negSign + " " + value + "</color>";
+                else if (i == 2) _equippableStats._armorStats[count].text = "RDef:    <color=lime>" + negSign + " " + value + "</color>";
+            }
+                
             count++;
         }
 
