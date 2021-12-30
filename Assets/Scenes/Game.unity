@@ -20687,6 +20687,7 @@ MonoBehaviour:
   _battleStart: {fileID: 8300000, guid: 7037651c47dad2342b78d711f37fd6a3, type: 3}
   _select: {fileID: 8300000, guid: a24d3b660d83087498fcf3a5521fd6de, type: 3}
   _heal: {fileID: 8300000, guid: c1ee89f018ba08d40bdc1a090d4a75ce, type: 3}
+  _confirm: {fileID: 8300000, guid: 62f19430968ef7a4aa7ec73664ceeba3, type: 3}
 --- !u!82 &1682882372
 AudioSource:
   m_ObjectHideFlags: 0

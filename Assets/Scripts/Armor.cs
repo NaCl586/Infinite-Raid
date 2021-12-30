@@ -15,6 +15,8 @@ public class Armor : MonoBehaviour
 
     //stats HP MDef RDef
     public int[] _statsGiven = { 0, 0, 0 };
+
+    //skills index (idx 0 always 0, sisanya -1)
     public int[] _skills = { 0, -1, -1 };
 
     //getter

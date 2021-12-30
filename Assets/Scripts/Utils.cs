@@ -31,4 +31,33 @@ public static class Utils
         return num;
     }
 
+    public static int[] skillRandomizer(int _weaponIdx, int _slots)
+    {
+        int[] _skills = { 0, -1, -1 };
+        if(_slots == 1)
+        {
+            //do nothing
+        }
+        else if(_slots > 1)
+        {
+            List<int> _skillList = new List<int>();
+            if (_weaponIdx == 0) { _skillList.Add(4); _skillList.Add(5); } //sword
+            else if (_weaponIdx == 1) { _skillList.Add(3); _skillList.Add(7); } //bow
+            else if (_weaponIdx == 2) { _skillList.Add(2); _skillList.Add(6); } //wand
+            else if (_weaponIdx == 3) { _skillList.Add(1); _skillList.Add(5); } //gauntlet
+            else if (_weaponIdx == 4) { _skillList.Add(5); _skillList.Add(8); }//morningStar
+            if (_slots == 2)
+            {
+                int rng = Random.Range(0, 2);
+                _skills[1] = _skillList[rng];
+            }
+            else if (_slots == 3)
+            {
+                _skills[1] = _skillList[0];
+                _skills[2] = _skillList[1];
+            }
+        }
+        return _skills;
+    }
+
 }

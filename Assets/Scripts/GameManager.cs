@@ -116,6 +116,139 @@ public class GameManager : MonoBehaviour
         _gameState = GameState.preBattle;
     }
 
+    public void instantiateNewHero()
+    {
+        int _index = Random.Range(0, 3+1);
+        while (true)
+        {
+            bool flag = false;
+            //kalo ada yg sama, maju satu nomor, terus cek ulang
+            for(int i = 0; i < _hero.Count; i++)
+            {
+                if(_hero[i]._name == _heroPool[_index]._name)
+                {
+                    _index++;
+                    _index %= _heroPool.Length;
+                    break;
+                }
+                else
+                {
+                    flag = true;
+                }
+            }
+            if (flag) break;
+        }
+
+        Hero h = Instantiate(_heroPool[_index]); //first hero selalu sorath
+
+        //3 random weapon (sword) stat, 1 or 2 random armor (shield) stat
+        int _weaponIndexRNG = Random.Range(0, _equippable._weapons.Length);
+        int _armorIndexRNG = Random.Range(0, _equippable._armors.Length);
+
+        //weapon
+        h._equippedWeapon = _equippable._weapons[_weaponIndexRNG];
+        Weapon w = h._equippedWeapon;
+
+        List<int> rng_weapon = new List<int>();
+        for (int i = 0; i < 4; i++) { rng_weapon.Add(i); }
+
+        for (int i = 0; i < 3; i++)
+        {
+            int rng_idx = Random.Range(0, rng_weapon.Count);
+            int rng = rng_weapon[rng_idx];
+            rng_weapon.RemoveAt(rng_idx);
+
+            int min = 0, max = 0;
+
+            if (rng == 0)
+            {
+                min = _equippable._weapons[_weaponIndexRNG].getHP().min;
+                max = _equippable._weapons[_weaponIndexRNG].getHP().max + 1;
+            }
+            else if (rng == 1)
+            {
+                min = _equippable._weapons[_weaponIndexRNG].getMAtk().min;
+                max = _equippable._weapons[_weaponIndexRNG].getMAtk().max + 1;
+            }
+            else if (rng == 2)
+            {
+                min = _equippable._weapons[_weaponIndexRNG].getRAtk().min;
+                max = _equippable._weapons[_weaponIndexRNG].getRAtk().max + 1;
+            }
+            else if (rng == 3)
+            {
+                min = _equippable._weapons[_weaponIndexRNG].getMDef().min;
+                max = _equippable._weapons[_weaponIndexRNG].getMDef().max + 1;
+            }
+            else if (rng == 4)
+            {
+                min = _equippable._weapons[_weaponIndexRNG].getRDef().min;
+                max = _equippable._weapons[_weaponIndexRNG].getRDef().max + 1;
+            }
+
+            int statRNG = Random.Range(min, max);
+
+            w._statsGiven[rng] = statRNG;
+        }
+
+        //armor
+        h._equippedArmor = _equippable._armors[_armorIndexRNG];
+        Armor a = h._equippedArmor;
+
+        int reps = Random.Range(1, 2 + 1);
+
+        List<int> rng_armor = new List<int>();
+        for (int i = 0; i < 3; i++) { rng_armor.Add(i); }
+
+        for (int i = 0; i < reps; i++)
+        {
+            int rng_idx = Random.Range(0, rng_armor.Count);
+            int rng = rng_armor[rng_idx];
+            rng_armor.RemoveAt(rng_idx);
+
+            int min = 0, max = 0;
+
+            if (rng == 0)
+            {
+                min = _equippable._armors[_armorIndexRNG].getHP().min;
+                max = _equippable._armors[_armorIndexRNG].getHP().max + 1;
+            }
+            else if (rng == 1)
+            {
+                min = _equippable._armors[_armorIndexRNG].getMDef().min;
+                max = _equippable._armors[_armorIndexRNG].getMDef().max + 1;
+            }
+            else if (rng == 2)
+            {
+                min = _equippable._armors[_armorIndexRNG].getRDef().min;
+                max = _equippable._armors[_armorIndexRNG].getRDef().max + 1;
+            }
+
+            int statRNG = Random.Range(min, max);
+            a._statsGiven[rng] = statRNG;
+        }
+
+        //skill
+        h._equippedArmor._skills = Utils.skillRandomizer(_weaponIndexRNG, _equippable._armors[_armorIndexRNG]._slots);
+
+        //set HP krn first appearance, max HP adalah 95% dari max hp terendah dari party excluding skills
+        int _minHP = 999999999;
+        foreach(Hero _h in _hero)
+        {
+            if (_h.getMaxHP() < _minHP)
+                _minHP = _h.getMaxHP();
+        }
+
+        h.setMaxHP(_minHP * 95 / 100);
+        h.setHP(h.getNetMaxHP());
+
+        //adding to hero list
+        _hero.Add(h);
+
+        //deactivate krn belon dibutuhkan, bakal di activate pas game start
+        h.gameObject.SetActive(false);
+    }
+
     public void initGame()
     { 
         _music.battle();
@@ -123,10 +256,14 @@ public class GameManager : MonoBehaviour
         game.SetActive(true);
         preBattle.SetActive(false);
         
+        //this is to instantiate additional hero
+        instantiateNewHero();
+
         //hero instantiation moved to pre battle manager, disini cuma handle animation aja
         //Player Stat Init
         foreach (HeroStats h in heroStats)
             h.gameObject.SetActive(false);
+
         //set active + animation
         for (int i = 0; i < _hero.Count; i++)
         {
@@ -888,6 +1025,7 @@ public class GameManager : MonoBehaviour
             });
         });
 
+        int _aliveHeroIdx = -1;
         //game saving
         for (int i = 0; i < _heroPool.Length; i++)
         {
@@ -897,19 +1035,20 @@ public class GameManager : MonoBehaviour
                 if(_hero[j]._name == _heroPool[i]._name)
                 {
                     alive = true;
+                    _aliveHeroIdx++;
                     break;
                 }
             }
             if (!alive) continue;
-
+            
             //save all stats
             PlayerPrefs.SetInt("HeroIsAlive" + i, 1);
 
             PlayerPrefs.SetInt("HeroHP" + i, _hero[i].getHP());
             PlayerPrefs.SetInt("HeroAP" + i, _hero[i].getAP());
             PlayerPrefs.SetInt("HeroMaxHP" + i, _hero[i].getMaxHP());
-
-            Hero h = _hero[i];
+            
+            Hero h = _hero[_aliveHeroIdx];
             int weaponIndex = 0, armorIndex = 0;
             for(int j = 0; j < _equippable._weapons.Length; j++)
             {
