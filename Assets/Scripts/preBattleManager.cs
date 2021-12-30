@@ -80,6 +80,7 @@ public class preBattleManager : MonoBehaviour
     private int _selectedHero;
     private int _selectedExitMenu;
     private int _selectedSkill;
+    private int _selectedSkillToReplace;
 
     private List<int> _aliveHeroIdx = new List<int>();
 
@@ -95,178 +96,188 @@ public class preBattleManager : MonoBehaviour
         
         if (PlayerPrefs.GetInt("GameStarted", 0) == 0)
         {
-            //delete previous data
-            PlayerPrefs.DeleteAll();
-
-            //generate first hero stats
-            int index = 0; //first hero index
-            
-            Hero h = Instantiate(_gameManager._heroPool[index]); //first hero selalu sorath
-            
-            //3 random weapon (sword) stat, 1 or 2 random armor (shield) stat
-            //weapon
-            h._equippedWeapon = _equippable._weapons[0];
-            Weapon w = h._equippedWeapon;
-
-
-            List<int> rng_weapon = new List<int>();
-            for(int i = 0; i < 4; i++) { rng_weapon.Add(i); }
-
-            for (int i = 0; i < 3; i++)
-            {
-                int rng_idx = Random.Range(0, rng_weapon.Count);
-                int rng = rng_weapon[rng_idx];
-                rng_weapon.RemoveAt(rng_idx);
-
-                int min = 0, max = 0;
-                
-                if (rng == 0)
-                {
-                    min = _equippable._weapons[0].getHP().min;
-                    max = _equippable._weapons[0].getHP().max + 1;
-                }
-                else if (rng == 1)
-                {
-                    min = _equippable._weapons[0].getMAtk().min;
-                    max = _equippable._weapons[0].getMAtk().max + 1;
-                }
-                else if (rng == 2)
-                {
-                    min = _equippable._weapons[0].getRAtk().min;
-                    max = _equippable._weapons[0].getRAtk().max + 1;
-                }
-                else if (rng == 3)
-                {
-                    min = _equippable._weapons[0].getMDef().min;
-                    max = _equippable._weapons[0].getMDef().max + 1;
-                }
-                else if (rng == 4)
-                {
-                    min = _equippable._weapons[0].getRDef().min;
-                    max = _equippable._weapons[0].getRDef().max + 1;
-                }
-                
-                int statRNG = Random.Range(min, max);
-                
-                w._statsGiven[rng] = statRNG;                
-            }
-            
-            //armor
-            h._equippedArmor = _equippable._armors[0];
-            Armor a = h._equippedArmor;
-            
-            int reps = Random.Range(1, 2 + 1);
-
-            List<int> rng_armor = new List<int>();
-            for (int i = 0; i < 3; i++) { rng_armor.Add(i); }
-
-            for (int i = 0; i < reps; i++)
-            {
-                int rng_idx = Random.Range(0, rng_armor.Count);
-                int rng = rng_armor[rng_idx];
-                rng_armor.RemoveAt(rng_idx);
-
-                int min = 0, max = 0;
-
-                if (rng == 0)
-                {
-                    min = _equippable._armors[0].getHP().min;
-                    max = _equippable._armors[0].getHP().max + 1;
-                }
-                else if (rng == 1)
-                {
-                    min = _equippable._armors[0].getMDef().min;
-                    max = _equippable._armors[0].getMDef().max + 1;
-                }
-                else if (rng == 2)
-                {
-                    min = _equippable._armors[0].getRDef().min;
-                    max = _equippable._armors[0].getRDef().max + 1;
-                }
-                
-                int statRNG = Random.Range(min, max);
-                a._statsGiven[rng] = statRNG;
-            }
-
-            //skill
-            h._equippedArmor._skills[0] = 0; //skill healing pasti ada
-            h._equippedArmor._skills[2] = -1; //sword only have 1 skill
-            h._equippedArmor._skills[1] = Random.Range(4, 6); //diantara skill idx 4 or 5
-
-            //karena masih first playthrough, maxHP samakan dengan HP
-            h.setHP(h.getNetMaxHP());
-            PlayerPrefs.SetInt("HeroHP" + index, h.getNetMaxHP());
-
-            //adding to hero list
-            _gameManager._hero.Add(h); 
-
-            //and alive hero index
-            int idx = 0;
-            _aliveHeroIdx.Add(idx); 
-
-            //deactivate krn belon dibutuhkan, bakal di activate pas game start
-            h.gameObject.SetActive(false);
-
-            _totalAlivePlayers = 1; 
+            instantiateFirstHero();
         }
         
         //if not first playthrough, init all players
         else
         {
-            //count what hero index are still alive
-            for (int i = 0; i < 4; i++)
-            {
-                if (PlayerPrefs.GetInt("HeroIsAlive" + i, 0) == 1)
-                {
-                    _aliveHeroIdx.Add(i);
-                }
-            }
-
-            _totalAlivePlayers = _aliveHeroIdx.Count;
-
-            //instantiate heroes
-            for (int i = 0; i < _totalAlivePlayers; i++)
-            { 
-                int index = _aliveHeroIdx[i];
-                Hero h = Instantiate(_gameManager._heroPool[index]);
-
-                int initHP = PlayerPrefs.GetInt("HeroHP" + index, 100);
-                int initMaxHP = PlayerPrefs.GetInt("HeroMaxHP" + index, 100);
-                int initAP = PlayerPrefs.GetInt("HeroAP" + index, 20);
-                h.setHP(initHP);
-                h.setAP(initAP);
-                h.setMaxHP(initMaxHP);
-
-                //loading weapon
-                int weaponIdx = PlayerPrefs.GetInt("HeroWeaponIdx" + index, 0); //dapetin tipe
-                h._equippedWeapon = _equippable._weapons[weaponIdx]; //masukin ke player
-                for(int j = 0; j < 5; j++) //copy tiap stats
-                {
-                    h._equippedWeapon._statsGiven[j] = PlayerPrefs.GetInt("HeroWeaponIdx" + index + "_wsIdx" + j, 0);
-                }
-
-                //loading armor
-                int armorIdx = PlayerPrefs.GetInt("HeroArmorIdx" + index, 0); //dapetin tipe
-                h._equippedArmor = _equippable._armors[armorIdx]; //masukin ke player
-                for (int j = 0; j < 3; j++) //copy tiap stats
-                {
-                    h._equippedArmor._statsGiven[j] = PlayerPrefs.GetInt("HeroArmorIdx" + index + "_asIdx" + j, 0);
-                }
-
-                //loading skills
-                for(int j = 0; j < 3; j++)
-                {
-                    h._equippedArmor._skills[j] = PlayerPrefs.GetInt("HeroSkills" + index + "_asIdx" + j, -1);
-                }
-
-                //adding to hero list
-                _gameManager._hero.Add(h);
-
-                //deactivate krn belon dibutuhkan, bakal di activate pas game start
-                h.gameObject.SetActive(false);
-            }
+            instantiateAllHeroes();
         }
         initPreBattle();
+    }
+
+    public void instantiateFirstHero()
+    {
+        //delete previous data
+        PlayerPrefs.DeleteAll();
+
+        //generate first hero stats
+        int index = 0; //first hero index
+
+        Hero h = Instantiate(_gameManager._heroPool[index]); //first hero selalu sorath
+
+        //3 random weapon (sword) stat, 1 or 2 random armor (shield) stat
+        //weapon
+        h._equippedWeapon = _equippable._weapons[0];
+        Weapon w = h._equippedWeapon;
+
+
+        List<int> rng_weapon = new List<int>();
+        for (int i = 0; i < 4; i++) { rng_weapon.Add(i); }
+
+        for (int i = 0; i < 3; i++)
+        {
+            int rng_idx = Random.Range(0, rng_weapon.Count);
+            int rng = rng_weapon[rng_idx];
+            rng_weapon.RemoveAt(rng_idx);
+
+            int min = 0, max = 0;
+
+            if (rng == 0)
+            {
+                min = _equippable._weapons[0].getHP().min;
+                max = _equippable._weapons[0].getHP().max + 1;
+            }
+            else if (rng == 1)
+            {
+                min = _equippable._weapons[0].getMAtk().min;
+                max = _equippable._weapons[0].getMAtk().max + 1;
+            }
+            else if (rng == 2)
+            {
+                min = _equippable._weapons[0].getRAtk().min;
+                max = _equippable._weapons[0].getRAtk().max + 1;
+            }
+            else if (rng == 3)
+            {
+                min = _equippable._weapons[0].getMDef().min;
+                max = _equippable._weapons[0].getMDef().max + 1;
+            }
+            else if (rng == 4)
+            {
+                min = _equippable._weapons[0].getRDef().min;
+                max = _equippable._weapons[0].getRDef().max + 1;
+            }
+
+            int statRNG = Random.Range(min, max);
+
+            w._statsGiven[rng] = statRNG;
+        }
+
+        //armor
+        h._equippedArmor = _equippable._armors[0];
+        Armor a = h._equippedArmor;
+
+        int reps = Random.Range(1, 2 + 1);
+
+        List<int> rng_armor = new List<int>();
+        for (int i = 0; i < 3; i++) { rng_armor.Add(i); }
+
+        for (int i = 0; i < reps; i++)
+        {
+            int rng_idx = Random.Range(0, rng_armor.Count);
+            int rng = rng_armor[rng_idx];
+            rng_armor.RemoveAt(rng_idx);
+
+            int min = 0, max = 0;
+
+            if (rng == 0)
+            {
+                min = _equippable._armors[0].getHP().min;
+                max = _equippable._armors[0].getHP().max + 1;
+            }
+            else if (rng == 1)
+            {
+                min = _equippable._armors[0].getMDef().min;
+                max = _equippable._armors[0].getMDef().max + 1;
+            }
+            else if (rng == 2)
+            {
+                min = _equippable._armors[0].getRDef().min;
+                max = _equippable._armors[0].getRDef().max + 1;
+            }
+
+            int statRNG = Random.Range(min, max);
+            a._statsGiven[rng] = statRNG;
+        }
+
+        //skill
+        h._equippedArmor._skills[0] = 0; //skill healing pasti ada
+        h._equippedArmor._skills[2] = -1; //sword only have 1 skill
+        h._equippedArmor._skills[1] = Random.Range(4, 6); //diantara skill idx 4 or 5
+
+        //karena masih first playthrough, maxHP samakan dengan HP
+        h.setHP(h.getNetMaxHP());
+        PlayerPrefs.SetInt("HeroHP" + index, h.getNetMaxHP());
+
+        //adding to hero list
+        _gameManager._hero.Add(h);
+
+        //and alive hero index
+        int idx = 0;
+        _aliveHeroIdx.Add(idx);
+
+        //deactivate krn belon dibutuhkan, bakal di activate pas game start
+        h.gameObject.SetActive(false);
+
+        _totalAlivePlayers = 1;
+    }
+
+    public void instantiateAllHeroes()
+    {
+        //count what hero index are still alive
+        for (int i = 0; i < 4; i++)
+        {
+            if (PlayerPrefs.GetInt("HeroIsAlive" + i, 0) == 1)
+            {
+                _aliveHeroIdx.Add(i);
+            }
+        }
+
+        _totalAlivePlayers = _aliveHeroIdx.Count;
+
+        //instantiate heroes
+        for (int i = 0; i < _totalAlivePlayers; i++)
+        {
+            int index = _aliveHeroIdx[i];
+            Hero h = Instantiate(_gameManager._heroPool[index]);
+
+            int initHP = PlayerPrefs.GetInt("HeroHP" + index, 100);
+            int initMaxHP = PlayerPrefs.GetInt("HeroMaxHP" + index, 100);
+            int initAP = PlayerPrefs.GetInt("HeroAP" + index, 20);
+            h.setHP(initHP);
+            h.setAP(initAP);
+            h.setMaxHP(initMaxHP);
+
+            //loading weapon
+            int weaponIdx = PlayerPrefs.GetInt("HeroWeaponIdx" + index, 0); //dapetin tipe
+            h._equippedWeapon = _equippable._weapons[weaponIdx]; //masukin ke player
+            for (int j = 0; j < 5; j++) //copy tiap stats
+            {
+                h._equippedWeapon._statsGiven[j] = PlayerPrefs.GetInt("HeroWeaponIdx" + index + "_wsIdx" + j, 0);
+            }
+
+            //loading armor
+            int armorIdx = PlayerPrefs.GetInt("HeroArmorIdx" + index, 0); //dapetin tipe
+            h._equippedArmor = _equippable._armors[armorIdx]; //masukin ke player
+            for (int j = 0; j < 3; j++) //copy tiap stats
+            {
+                h._equippedArmor._statsGiven[j] = PlayerPrefs.GetInt("HeroArmorIdx" + index + "_asIdx" + j, 0);
+            }
+
+            //loading skills
+            for (int j = 0; j < 3; j++)
+            {
+                h._equippedArmor._skills[j] = PlayerPrefs.GetInt("HeroSkills" + index + "_asIdx" + j, -1);
+            }
+
+            //adding to hero list
+            _gameManager._hero.Add(h);
+
+            //deactivate krn belon dibutuhkan, bakal di activate pas game start
+            h.gameObject.SetActive(false);
+        }
     }
 
     public void initPreBattle()
@@ -409,7 +420,7 @@ public class preBattleManager : MonoBehaviour
         for(int i = 0; i < 3; i++)
         {
             if (a._skills[i] != -1) _skills[i].text = _skillList._skillList[a._skills[i]]._skillName;
-            else _skills[i].text = "=";
+            else _skills[i].text = "";
         }
     }
 
@@ -577,18 +588,83 @@ public class preBattleManager : MonoBehaviour
                 if (_selectedSkill >= 8) _selectedSkill = 0;
                 selectSkill(_selectedSkill);
             }
+            if(Input.GetKey(KeyCode.Return) && (Time.time - arrowStartTime) > 0.175f)
+            {
+                if (selectSkill(_selectedSkill))
+                {
+                    updateArrowTime();
+                    _selectedSkillToReplace = 1;
+                    _state = menuState.sideActionMenu;
+                    resetText(_skills);
+                    _skills[_selectedSkillToReplace].color = Color.yellow;
+                }
+            }
+        }
+
+        //selecting what skill to replace
+        if(_state == menuState.sideActionMenu)
+        {
+            if (Input.GetKey(KeyCode.UpArrow) && (Time.time - arrowStartTime) > 0.175f)
+            {
+                updateArrowTime();
+                _selectedSkillToReplace--;
+                if (_selectedSkillToReplace < 1) _selectedSkillToReplace = _gameManager._hero[_selectedHero]._equippedArmor._slots - 1;
+                resetText(_skills);
+                _skills[_selectedSkillToReplace].color = Color.yellow;
+            }
+            if (Input.GetKey(KeyCode.DownArrow) && (Time.time - arrowStartTime) > 0.175f)
+            {
+                updateArrowTime();
+                _selectedSkillToReplace++;
+                if (_selectedSkill >= _gameManager._hero[_selectedHero]._equippedArmor._slots) _selectedSkillToReplace = 1;
+                resetText(_skills);
+                _skills[_selectedSkillToReplace].color = Color.yellow;
+            }
+            if (Input.GetKey(KeyCode.Escape) && (Time.time - arrowStartTime) > 0.175f)
+            {
+                updateArrowTime();
+                resetText(_skills);
+                _state = menuState.skillSelectMenu;
+            }
+            //replace
+            if (Input.GetKey(KeyCode.Return) && (Time.time - arrowStartTime) > 0.175f)
+            {
+                arrowStartTime = Time.time;
+                _gameManager._hero[_selectedHero]._equippedArmor._skills[_selectedSkillToReplace] = _selectedSkill + 1;
+                _skills[_selectedSkillToReplace].text = _skillList._skillList[_selectedSkill + 1]._skillName;
+                _skills[_selectedSkillToReplace].color = Color.white;
+                _sfx.confirm();
+                selectSkill(_selectedSkill);
+                _state = menuState.skillSelectMenu;
+            }
         }
     }
 
-    public void selectSkill(int index)
+    public bool selectSkill(int index)
     {
         _skillCaption.text = _skillList._skillList[index + 1]._skillDesc;
-        
+
+        bool _onlyOneSkill = _gameManager._hero[_selectedHero]._equippedArmor._slots <= 1;
         bool[] valid = new bool[8];
         for (int i = 0; i < _skillNames.Length; i++)
         {
             valid[i] = false;
             _skillNames[i].color = Color.gray;
+
+            if (_onlyOneSkill) continue;
+
+            bool flag = false;
+            for (int j = 1; j < 3; j++)
+            {
+                if (i+1 == _gameManager._hero[_selectedHero]._equippedArmor._skills[j])
+                {
+                    flag = true;
+                    break;
+                }
+
+            }
+            if (flag) continue;
+
             foreach (int j in _skillList._skillList[i + 1]._usableWeapons)
             {
                 if (j == PlayerPrefs.GetInt("HeroWeapon" + index, 0))
@@ -600,6 +676,9 @@ public class preBattleManager : MonoBehaviour
             }
         }
         _skillNames[index].color = valid[index] ? Color.yellow : Color.red;
+
+        if (_onlyOneSkill) return false;
+        return valid[index];
     }
 
     public void setCursorPosition()
