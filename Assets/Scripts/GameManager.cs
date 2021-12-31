@@ -1107,7 +1107,7 @@ public class GameManager : MonoBehaviour
         yield return new WaitForSecondsRealtime(1f);
         updateGameCondition();
 
-        if (_gameState != GameState.battleEnd) endPlayerTurn(-1);
+        if (_gameState != GameState.battleEnd) endPlayerTurn(attackerIndex);
         npcAttackInProgress = false;
     }
 
@@ -1117,7 +1117,7 @@ public class GameManager : MonoBehaviour
 
         if (_selectedSkill == -1) _sfx.attack();
         else if (_selectedSkill == 2) _sfx.sunlanceStrike();
-        else if (_selectedSkill == 4) _sfx.chronoSlash();
+        else if (_selectedSkill == 4) _sfx.chronoSlash();  
         else if (_selectedSkill == 5) _sfx.midnightElegance();
 
         yield return new WaitForSecondsRealtime(1f);
@@ -1174,28 +1174,43 @@ public class GameManager : MonoBehaviour
     void updateGameCondition()
     {
         //check kondisi enemy
+        List<Enemy> _deadEnemies = new List<Enemy>();
         for (int i = 0; i < _enemy.Count; i++)
         {
             if (_enemy[i].getHP() < 0)
             {
                 _enemy[i].defeated();
                 _sfx.enemyDie();
-                _enemy.Remove(_enemy[i]);
+                _deadEnemies.Add(_enemy[i]);
             }
         }
+
+        foreach(Enemy _ded in _deadEnemies)
+            _enemy.Remove(_ded);
+
         updateEnemyNames();
 
         //cek kondisi player
+        List<Hero> _deadHeroes = new List<Hero>();
+        bool dedsound = false;
         for (int i = 0; i < _hero.Count; i++)
         {
             if (_hero[i].getHP() < 0)
             {
                 _hero[i].defeated();
-                _sfx.enemyDie();
-                _hero.Remove(_hero[i]);
+                if (!dedsound)
+                {
+                    dedsound = true;
+                    _sfx.enemyDie();
+                }
+                _deadHeroes.Add(_hero[i]);
             }
         }
-        if(_hero.Count == 0)
+
+        foreach (Hero _ded in _deadHeroes)
+            _hero.Remove(_ded);
+
+        if (_hero.Count == 0)
         {
             //game over
             _gameState = GameState.battleEnd;
