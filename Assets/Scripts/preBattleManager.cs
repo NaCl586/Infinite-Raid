@@ -37,7 +37,7 @@ public class EquippableStats
     public Text[] _weaponStats = new Text[3];
     public Image _armorIcon;
     public Text _armorName;
-    public Text[] _armorStats = new Text[2];
+    public Text[] _armorStats = new Text[3];
 }
 
 public class preBattleManager : MonoBehaviour
@@ -76,6 +76,14 @@ public class preBattleManager : MonoBehaviour
     public Text _skillCaption;
     public Text[] _skillMenuAP;
 
+    [Header("Post Battle Menu References")]
+    public GameObject _postBattleMenu;
+    public Text _itemName;
+    public Image _itemIcon;
+    public Text[] _itemStats;
+    public Text[] _pbmTexts;
+    public Text _pbmCaption;
+
     //selections
     private int _totalAlivePlayers;
     private int _selectedActionMenu;
@@ -85,7 +93,13 @@ public class preBattleManager : MonoBehaviour
     private int _selectedSkillToReplace;
     private int _selectedWhatToSwapMenu;
     private int _selectedWhoToSwapWith;
+    private int _selectedPostBattleMenu;
     private swapType _swapType;
+
+    private int _postBattleItems;
+    private int _postBattleIdx;
+    private Armor _postBattleArmor;
+    private Weapon _postBattleWeapon;
 
     private List<int> _aliveHeroIdx = new List<int>();
 
@@ -124,88 +138,10 @@ public class preBattleManager : MonoBehaviour
 
         //3 random weapon (sword) stat, 1 or 2 random armor (shield) stat
         //weapon
-        h._equippedWeapon = _equippable._weapons[0];
-        Weapon w = h._equippedWeapon;
-
-
-        List<int> rng_weapon = new List<int>();
-        for (int i = 0; i < 4; i++) { rng_weapon.Add(i); }
-
-        for (int i = 0; i < 3; i++)
-        {
-            int rng_idx = Random.Range(0, rng_weapon.Count);
-            int rng = rng_weapon[rng_idx];
-            rng_weapon.RemoveAt(rng_idx);
-
-            int min = 0, max = 0;
-
-            if (rng == 0)
-            {
-                min = _equippable._weapons[0].getHP().min;
-                max = _equippable._weapons[0].getHP().max + 1;
-            }
-            else if (rng == 1)
-            {
-                min = _equippable._weapons[0].getMAtk().min;
-                max = _equippable._weapons[0].getMAtk().max + 1;
-            }
-            else if (rng == 2)
-            {
-                min = _equippable._weapons[0].getRAtk().min;
-                max = _equippable._weapons[0].getRAtk().max + 1;
-            }
-            else if (rng == 3)
-            {
-                min = _equippable._weapons[0].getMDef().min;
-                max = _equippable._weapons[0].getMDef().max + 1;
-            }
-            else if (rng == 4)
-            {
-                min = _equippable._weapons[0].getRDef().min;
-                max = _equippable._weapons[0].getRDef().max + 1;
-            }
-
-            int statRNG = Random.Range(min, max);
-
-            w._statsGiven[rng] = statRNG;
-        }
+        h._equippedWeapon = _gameManager.generateWeapon(0);
 
         //armor
-        h._equippedArmor = _equippable._armors[0];
-        Armor a = h._equippedArmor;
-
-        int reps = Random.Range(1, 2 + 1);
-
-        List<int> rng_armor = new List<int>();
-        for (int i = 0; i < 3; i++) { rng_armor.Add(i); }
-
-        for (int i = 0; i < reps; i++)
-        {
-            int rng_idx = Random.Range(0, rng_armor.Count);
-            int rng = rng_armor[rng_idx];
-            rng_armor.RemoveAt(rng_idx);
-
-            int min = 0, max = 0;
-
-            if (rng == 0)
-            {
-                min = _equippable._armors[0].getHP().min;
-                max = _equippable._armors[0].getHP().max + 1;
-            }
-            else if (rng == 1)
-            {
-                min = _equippable._armors[0].getMDef().min;
-                max = _equippable._armors[0].getMDef().max + 1;
-            }
-            else if (rng == 2)
-            {
-                min = _equippable._armors[0].getRDef().min;
-                max = _equippable._armors[0].getRDef().max + 1;
-            }
-
-            int statRNG = Random.Range(min, max);
-            a._statsGiven[rng] = statRNG;
-        }
+        h._equippedArmor = _gameManager.generateArmor(0);
 
         //skill
         h._equippedArmor._skills[0] = 0; //skill healing pasti ada
@@ -283,6 +219,28 @@ public class preBattleManager : MonoBehaviour
             //deactivate krn belon dibutuhkan, bakal di activate pas game start
             h.gameObject.SetActive(false);
         }
+    }
+
+    public void initPostBattle()
+    {
+        _aliveHeroIdx.Clear();
+        instantiateAllHeroes();
+        updateHeroMenu();
+
+        _postBattleMenu.SetActive(true);
+        _cursor.SetActive(false);
+
+        _postBattleItems = _gameManager._weaponDrops.Count + _gameManager._armorDrops.Count;
+        _postBattleIdx = 0;
+        _selectedPostBattleMenu = 0;
+
+        setPostBattleCaption(_postBattleIdx);
+
+        resetText(_pbmTexts);
+        _pbmTexts[_selectedPostBattleMenu].color = Color.yellow;
+
+        _state = menuState.postBattle;
+        
     }
 
     public void initPreBattle()
@@ -389,8 +347,13 @@ public class preBattleManager : MonoBehaviour
         _charaStats._RDef.text = "RDef.   " + (_hero.getRDef() + RDefBoost);
 
         //Equippable Stats
-        int initWeaponIdx = PlayerPrefs.GetInt("HeroWeapon" + index, 0);
-        int initArmorIdx = PlayerPrefs.GetInt("HeroArmor" + index, 0);
+        int initWeaponIdx = 0;
+        for (int j = 0; j < _gameManager._equippable._weapons.Length; j++)
+            if (w._name == _gameManager._equippable._weapons[j]._name) initWeaponIdx = j;
+
+        int initArmorIdx = 0;
+        for (int j = 0; j < _gameManager._equippable._armors.Length; j++)
+            if (a._name == _gameManager._equippable._armors[j]._name) initArmorIdx = j;
 
         _equippableStats._armorIcon.sprite = _equippable._armors[initArmorIdx]._icon;
         _equippableStats._armorName.text = _equippable._armors[initArmorIdx]._name;
@@ -430,11 +393,11 @@ public class preBattleManager : MonoBehaviour
         }
 
 
-        for(int i = 0; i < 2; i++)
+        for(int i = 0; i < 3; i++)
             _equippableStats._armorStats[i].text = "";
 
         count = 0;
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 2; i++)
         {
             if (a._statsGiven[i] == 0) continue;
             if (count >= _equippableStats._armorStats.Length) break;
@@ -459,6 +422,8 @@ public class preBattleManager : MonoBehaviour
                 
             count++;
         }
+        _equippableStats._armorStats[2].text = "Skill slots:   " + a._slots;
+
 
         //Skills
         foreach (Text t in _skills) t.text = "";
@@ -480,6 +445,8 @@ public class preBattleManager : MonoBehaviour
     }
 
     private float arrowStartTime;
+    public void setArrowStartTime(float _arrowStartTime) { arrowStartTime = _arrowStartTime;}
+
     private bool _isChangingSkill, _isSwappingEquipment;
     // Update is called once per frame
     void Update()
@@ -585,7 +552,6 @@ public class preBattleManager : MonoBehaviour
                 if (_selectedHero < 0) _selectedHero = _totalAlivePlayers - 1;
                 showHeroMenu();
                 setCursorPosition();
-
             }
             if (Input.GetKey(KeyCode.DownArrow) && (Time.time - arrowStartTime) > 0.175f)
             {
@@ -825,6 +791,185 @@ public class preBattleManager : MonoBehaviour
                 _state = menuState.skillSelectMenu;
             }
         }
+
+        //post battle
+        if (_state == menuState.postBattle)
+        {
+            if ((Input.GetKey(KeyCode.UpArrow) || Input.GetKey(KeyCode.DownArrow)) && (Time.time - arrowStartTime) > 0.175f)
+            {
+                updateArrowTime();
+                _selectedPostBattleMenu++;
+                _selectedPostBattleMenu %= 2;
+                resetText(_pbmTexts);
+                _pbmTexts[_selectedPostBattleMenu].color = Color.yellow;
+            }
+            //skip
+            if ((_selectedPostBattleMenu == 1 && Input.GetKey(KeyCode.Return) && (Time.time - arrowStartTime) > 0.175f))
+            {
+                updateArrowTime();
+                postBattleNext();
+            }
+            //select hero
+            if ((_selectedPostBattleMenu == 0 && Input.GetKey(KeyCode.Return) && (Time.time - arrowStartTime) > 0.175f))
+            {
+                updateArrowTime();
+                _cursor.SetActive(true);
+                setCursorPosition();
+                _state = menuState.postBattleHero;
+            }
+        }
+
+        //selecting who to use the item drop
+        if(_state == menuState.postBattleHero)
+        {
+            //Navigation
+            if (Input.GetKey(KeyCode.UpArrow) && (Time.time - arrowStartTime) > 0.175f)
+            {
+                updateArrowTime();
+                _selectedHero--;
+                if (_selectedHero < 0) _selectedHero = _totalAlivePlayers - 1;
+                showHeroMenu();
+                setCursorPosition();
+            }
+            if (Input.GetKey(KeyCode.DownArrow) && (Time.time - arrowStartTime) > 0.175f)
+            {
+                updateArrowTime();
+                _selectedHero++;
+                if (_selectedHero >= _totalAlivePlayers) _selectedHero = 0;
+                showHeroMenu();
+                setCursorPosition();
+            }
+            if (Input.GetKey(KeyCode.Escape) && (Time.time - arrowStartTime) > 0.175f)
+            {
+                updateArrowTime();
+                _cursor.SetActive(false);
+                _state = menuState.postBattle;
+                resetText(_pbmTexts);
+                _pbmTexts[_selectedPostBattleMenu].color = Color.yellow;
+            }
+            if (Input.GetKey(KeyCode.Return) && (Time.time - arrowStartTime) > 0.175f)
+            {
+                //use item
+                arrowStartTime = Time.time;
+                _sfx.confirm();
+
+                if (_postBattleWeapon == null)
+                    _gameManager._hero[_selectedHero]._equippedArmor = _postBattleArmor;
+                else if(_postBattleArmor == null)
+                    _gameManager._hero[_selectedHero]._equippedWeapon = _postBattleWeapon;
+
+                updateHeroMenu();
+                showHeroMenu();
+                
+                postBattleNext();
+            }
+        }
+    }
+
+    void postBattleNext()
+    {
+        _postBattleIdx++;
+
+        if (_postBattleIdx >= _postBattleItems)
+        {
+            _gameManager.saveGame();
+            SceneManager.LoadScene(0);
+        }
+            
+        setPostBattleCaption(_postBattleIdx);
+
+        _selectedPostBattleMenu = 0;
+        resetText(_pbmTexts);
+        _pbmTexts[_selectedPostBattleMenu].color = Color.yellow;
+    }
+
+    void setPostBattleCaption(int idx)
+    {
+        _pbmCaption.text = "Item (" + (idx+1) + "/" + _postBattleItems + "):";
+
+        foreach (Text t in _itemStats) t.text = "";
+
+        if (_gameManager._armorDrops.Count != 0)
+        {
+            Armor a = _gameManager._armorDrops[0];
+
+            _itemIcon.sprite = a._icon;
+            _itemName.text = a._name;
+
+            int count = 0;
+            for (int i = 0; i < 2; i++)
+            {
+                if (a._statsGiven[i] == 0) continue;
+                if (count >= _equippableStats._armorStats.Length) break;
+
+                int value = a._statsGiven[i];
+                bool negative = value < 0;
+                string negSign = value < 0 ? "-" : "+";
+                value = Mathf.Abs(value);
+
+                if (negative)
+                {
+                    if (i == 0) _itemStats[count].text = "HP        <color=red>" + negSign + " " + value + "</color>";
+                    else if (i == 1) _itemStats[count].text = "MDef:   <color=red>" + negSign + " " + value + "</color>";
+                    else if (i == 2) _itemStats[count].text = "RDef:    <color=red>" + negSign + " " + value + "</color>";
+                }
+                else
+                {
+                    if (i == 0) _itemStats[count].text = "HP        <color=lime>" + negSign + " " + value + "</color>";
+                    else if (i == 1) _itemStats[count].text = "MDef:   <color=lime>" + negSign + " " + value + "</color>";
+                    else if (i == 2) _itemStats[count].text = "RDef:    <color=lime>" + negSign + " " + value + "</color>";
+                }
+
+                count++;
+            }
+
+            _itemStats[2].text = "Skill slots:   " + a._slots;
+
+            _postBattleArmor = a;
+            _postBattleWeapon = null;
+            _gameManager._armorDrops.RemoveAt(0);
+        }
+        else if(_gameManager._weaponDrops.Count != 0)
+        {
+           Weapon w = _gameManager._weaponDrops[0];
+
+            _itemIcon.sprite = w._icon;
+            _itemName.text = w._name;
+
+            int count = 0;
+            for (int i = 0; i < 5; i++)
+            {
+                if (w._statsGiven[i] == 0) continue;
+                if (count >= _equippableStats._weaponStats.Length) break;
+
+                int value = w._statsGiven[i];
+                bool negative = value < 0;
+                string negSign = value < 0 ? "-" : "+";
+                value = Mathf.Abs(value);
+
+                if (negative)
+                {
+                    if (i == 0) _itemStats[count].text = "HP        <color=red>" + negSign + " " + value + "</color>";
+                    else if (i == 1) _itemStats[count].text = "MAtk.  <color=red>" + negSign + " " + value + "</color>";
+                    else if (i == 2) _itemStats[count].text = "RAtk.   <color=red>" + negSign + " " + value + "</color>";
+                    else if (i == 3) _itemStats[count].text = "MDef:   <color=red>" + negSign + " " + value + "</color>";
+                    else if (i == 4) _itemStats[count].text = "RDef:    <color=red>" + negSign + " " + value + "</color>";
+                }
+                else
+                {
+                    if (i == 0) _itemStats[count].text = "HP        <color=lime>" + negSign + " " + value + "</color>";
+                    else if (i == 1) _itemStats[count].text = "MAtk.  <color=lime>" + negSign + " " + value + "</color>";
+                    else if (i == 2) _itemStats[count].text = "RAtk.   <color=lime>" + negSign + " " + value + "</color>";
+                    else if (i == 3) _itemStats[count].text = "MDef:   <color=lime>" + negSign + " " + value + "</color>";
+                    else if (i == 4) _itemStats[count].text = "RDef:    <color=lime>" + negSign + " " + value + "</color>";
+                }
+                count++;
+            }
+
+            _postBattleArmor = null;
+            _postBattleWeapon = w;
+            _gameManager._weaponDrops.RemoveAt(0);
+        }
     }
 
     public bool selectSkill(int index)
@@ -923,5 +1068,7 @@ public class preBattleManager : MonoBehaviour
         whatToSwapMenu,
         swapWithWho,
         promptExit,
+        postBattle,
+        postBattleHero,
     }
 }
