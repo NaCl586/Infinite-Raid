@@ -20,10 +20,10 @@ public static class Utils
         return 10;
     }
 
-    public static int scalingMultiplier(int _wave)
+    public static float scalingMultiplier(int _wave)
     {
-        int num = 1;
-        int reps = (_wave + 1) / 5;
+        float num = 1;
+        int reps = (_wave) / 5;
         for (int i = 0; i < reps; i++)
         {
             num = (num * 100) / 125;

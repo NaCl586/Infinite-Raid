@@ -23,4 +23,5 @@ public class Armor : MonoBehaviour
     public rangedInt getHP() { return this._HP; }
     public rangedInt getMDef() { return this._MDef; }
     public rangedInt getRDef() { return this._RDef; }
+
 }
