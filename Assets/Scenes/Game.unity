@@ -716,7 +716,7 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 955315910}
-  m_RootOrder: 0
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
@@ -943,7 +943,7 @@ RectTransform:
   - {fileID: 2019680578}
   - {fileID: 1166330991}
   m_Father: {fileID: 955315910}
-  m_RootOrder: 3
+  m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
@@ -1286,7 +1286,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enableDebug: 1
-  _enemiesDebug: {x: 0, y: -1, z: -1}
+  _enemiesDebug: {x: 0, y: 1, z: 2}
   preBattle: {fileID: 656415494}
   game: {fileID: 955315909}
   _preBattleManager: {fileID: 1998833625}
@@ -1358,7 +1358,6 @@ MonoBehaviour:
   - {fileID: 1589241529}
   - {fileID: 1294613439}
   - {fileID: 1236488277}
-  _skill: []
   _equippable: {fileID: 1175519722}
   _levelUpBar: {fileID: 2096548413}
   _levelUpText:
@@ -1376,6 +1375,10 @@ MonoBehaviour:
   _armorDrops: []
   _sfx: {fileID: 1682882371}
   _music: {fileID: 938695649}
+  _defenseUp: {fileID: 1732675934}
+  _defenseUpText: {fileID: 2092954454}
+  _sleepyGameObject: {fileID: 8508263156264695526, guid: 18fb82975cae0b64ab97595ef603f988,
+    type: 3}
   _endGameHeader: {fileID: 0}
 --- !u!4 &116575475
 Transform:
@@ -1615,7 +1618,7 @@ RectTransform:
   - {fileID: 1795501544}
   - {fileID: 2018794284}
   m_Father: {fileID: 955315910}
-  m_RootOrder: 4
+  m_RootOrder: 5
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
@@ -14023,6 +14026,7 @@ RectTransform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
+  - {fileID: 1732675935}
   - {fileID: 66878597}
   - {fileID: 1311228087}
   - {fileID: 1721477660}
@@ -17842,24 +17846,24 @@ MonoBehaviour:
     _APNeeded: 13
     _usableWeapons: 00000000
   - _skillName: Perseverance
-    _skillDesc: Increase party defense by 30 for 3 turns
+    _skillDesc: Increase party defense for 3 turns
     _APNeeded: 10
     _usableWeapons: 03000000
   - _skillName: Sunlance Strike
-    _skillDesc: Deal 500% RDef to a single enemy
+    _skillDesc: Deal huge damage to a single enemy
     _APNeeded: 20
     _usableWeapons: 02000000
   - _skillName: Bird of prey
-    _skillDesc: Blind enemy for one turn
+    _skillDesc: Blind an enemy for one turn
     _APNeeded: 8
     _usableWeapons: 01000000
   - _skillName: Chrono Slash
-    _skillDesc: Stop the time, slice toward one enemy and deal 150% MAtk
+    _skillDesc: Stop the time, slice toward one enemy and deal moderate damage
     _APNeeded: 10
     _usableWeapons: 00000000
   - _skillName: Midnight Elegance
-    _skillDesc: Immediately attack an enemy with 120% MAtk and ignore evade chance
-      from enemy
+    _skillDesc: Immediately attack an enemy with moderate damage and ignore evade
+      chance from enemy
     _APNeeded: 18
     _usableWeapons: 000000000300000004000000
   - _skillName: Lunar Blessing
@@ -17867,13 +17871,13 @@ MonoBehaviour:
     _APNeeded: 15
     _usableWeapons: 02000000
   - _skillName: Firestorm
-    _skillDesc: Summon storm of fire towards enemies that damage an enemy and decrease
-      their defense
+    _skillDesc: Summon storm of fire towards all enemies that damage an enemy and
+      decrease their defense
     _APNeeded: 20
     _usableWeapons: 01000000
   - _skillName: Daisycutter
-    _skillDesc: Immediately destroy the earth make earth self rumbling and deal damage
-      to an enemy
+    _skillDesc: Immediately destroy the earth, make earth self rumbling, and deal
+      damage to all enemies
     _APNeeded: 20
     _usableWeapons: 04000000
 --- !u!4 &1307088591
@@ -17925,7 +17929,7 @@ RectTransform:
   - {fileID: 1517915680}
   - {fileID: 74619586}
   m_Father: {fileID: 955315910}
-  m_RootOrder: 1
+  m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
@@ -22221,7 +22225,7 @@ RectTransform:
   - {fileID: 1294613435}
   - {fileID: 1236488273}
   m_Father: {fileID: 955315910}
-  m_RootOrder: 6
+  m_RootOrder: 7
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
@@ -22343,6 +22347,14 @@ MonoBehaviour:
   _select: {fileID: 8300000, guid: a24d3b660d83087498fcf3a5521fd6de, type: 3}
   _heal: {fileID: 8300000, guid: c1ee89f018ba08d40bdc1a090d4a75ce, type: 3}
   _confirm: {fileID: 8300000, guid: 62f19430968ef7a4aa7ec73664ceeba3, type: 3}
+  _preserverance: {fileID: 8300000, guid: 8858188df73be284abce96d6629b746f, type: 3}
+  _sunlanceStrike: {fileID: 8300000, guid: 298aa872b891ccf419e9d7b47d8a9761, type: 3}
+  _midnightElegance: {fileID: 8300000, guid: 5777ce1d420be964183a0a5902f87880, type: 3}
+  _birdOfPrey: {fileID: 8300000, guid: ef39c751864d1764db87383124c70b2b, type: 3}
+  _chronoSlash: {fileID: 8300000, guid: 51499677f00db90468c471567f05c202, type: 3}
+  _lunarBlessing: {fileID: 8300000, guid: 34aaaab09280fba4aa1701eb20e098a8, type: 3}
+  _firestorm: {fileID: 8300000, guid: f26d237529d66ff4399f9922418c542b, type: 3}
+  _daisycutter: {fileID: 8300000, guid: 298aa872b891ccf419e9d7b47d8a9761, type: 3}
 --- !u!82 &1682882372
 AudioSource:
   m_ObjectHideFlags: 0
@@ -22863,7 +22875,7 @@ RectTransform:
   - {fileID: 496976394}
   - {fileID: 348831108}
   m_Father: {fileID: 955315910}
-  m_RootOrder: 2
+  m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
@@ -22908,6 +22920,89 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1721477659}
   m_CullTransparentMesh: 0
+--- !u!1 &1732675934
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1732675935}
+  - component: {fileID: 1732675936}
+  m_Layer: 0
+  m_Name: DefenseUp
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!4 &1732675935
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1732675934}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 589.4, y: -83.7973, z: -6838.058}
+  m_LocalScale: {x: 139.29323, y: 139.29369, z: 75.978424}
+  m_Children:
+  - {fileID: 2092954458}
+  m_Father: {fileID: 955315910}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!212 &1732675936
+SpriteRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1732675934}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 0
+  m_DynamicOccludee: 1
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 0
+  m_RayTraceProcedural: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 0
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_SortingLayerID: -105541197
+  m_SortingLayer: 3
+  m_SortingOrder: 0
+  m_Sprite: {fileID: 21300000, guid: 17248b21e2c4afb4cb40805c7826ad08, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_FlipX: 0
+  m_FlipY: 0
+  m_DrawMode: 0
+  m_Size: {x: 0.3, y: 0.3}
+  m_AdaptiveModeThreshold: 0.5
+  m_SpriteTileMode: 0
+  m_WasSpriteAssigned: 1
+  m_MaskInteraction: 0
+  m_SpriteSortPoint: 0
 --- !u!1 &1734572929
 GameObject:
   m_ObjectHideFlags: 0
@@ -29117,6 +29212,117 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2089986381}
   m_CullTransparentMesh: 0
+--- !u!1 &2092954453
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2092954458}
+  - component: {fileID: 2092954457}
+  - component: {fileID: 2092954454}
+  - component: {fileID: 2092954456}
+  - component: {fileID: 2092954455}
+  m_Layer: 5
+  m_Name: Turns
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2092954454
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2092954453}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_FontData:
+    m_Font: {fileID: 12800000, guid: 79a6d80627f8c774ba1688f42fe33a61, type: 3}
+    m_FontSize: 36
+    m_FontStyle: 1
+    m_BestFit: 0
+    m_MinSize: 3
+    m_MaxSize: 300
+    m_Alignment: 4
+    m_AlignByGeometry: 0
+    m_RichText: 1
+    m_HorizontalOverflow: 0
+    m_VerticalOverflow: 0
+    m_LineSpacing: 1
+  m_Text: 3
+--- !u!114 &2092954455
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2092954453}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cfabb0440166ab443bba8876756fdfa9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_EffectColor: {r: 0, g: 0, b: 0, a: 0.5}
+  m_EffectDistance: {x: 2, y: -2}
+  m_UseGraphicAlpha: 1
+--- !u!114 &2092954456
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2092954453}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cfabb0440166ab443bba8876756fdfa9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_EffectColor: {r: 0, g: 0, b: 0, a: 1}
+  m_EffectDistance: {x: 2, y: -2}
+  m_UseGraphicAlpha: 1
+--- !u!222 &2092954457
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2092954453}
+  m_CullTransparentMesh: 0
+--- !u!224 &2092954458
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2092954453}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 90}
+  m_LocalScale: {x: 0.0071791, y: 0.0071790763, z: 0.013161631}
+  m_Children: []
+  m_Father: {fileID: 1732675935}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 1}
+  m_AnchorMax: {x: 0.5, y: 1}
+  m_AnchoredPosition: {x: 0.07611084, y: 0.068992615}
+  m_SizeDelta: {x: 40.93715, y: 40.45833}
+  m_Pivot: {x: 0.5, y: 1}
 --- !u!1 &2096548413
 GameObject:
   m_ObjectHideFlags: 0
@@ -29156,7 +29362,7 @@ RectTransform:
   - {fileID: 151073142}
   - {fileID: 121560239}
   m_Father: {fileID: 955315910}
-  m_RootOrder: 5
+  m_RootOrder: 6
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}

@@ -697,14 +697,14 @@ public class preBattleManager : MonoBehaviour
                     Armor _tempArmor = _gameManager._hero[_selectedHero]._equippedArmor;
                     _gameManager._hero[_selectedHero]._equippedArmor = _gameManager._hero[_selectedWhoToSwapWith]._equippedArmor;
                     _gameManager._hero[_selectedWhoToSwapWith]._equippedArmor = _tempArmor;
-
-                    //reset skills
-                    _gameManager._hero[_selectedHero]._equippedArmor._skills[0] = 0;
-                    _gameManager._hero[_selectedHero]._equippedArmor._skills[1] = _gameManager._hero[_selectedHero]._equippedArmor._skills[2] = -1;
-
-                    _gameManager._hero[_selectedWhoToSwapWith]._equippedArmor._skills[0] = 0;
-                    _gameManager._hero[_selectedWhoToSwapWith]._equippedArmor._skills[1] = _gameManager._hero[_selectedWhoToSwapWith]._equippedArmor._skills[2] = -1;
                 }
+
+                //reset skills
+                _gameManager._hero[_selectedHero]._equippedArmor._skills[0] = 0;
+                _gameManager._hero[_selectedHero]._equippedArmor._skills[1] = _gameManager._hero[_selectedHero]._equippedArmor._skills[2] = -1;
+
+                _gameManager._hero[_selectedWhoToSwapWith]._equippedArmor._skills[0] = 0;
+                _gameManager._hero[_selectedWhoToSwapWith]._equippedArmor._skills[1] = _gameManager._hero[_selectedWhoToSwapWith]._equippedArmor._skills[2] = -1;
 
                 _cursor.SetActive(false);
                 _state = menuState.actionMenu;
@@ -875,6 +875,7 @@ public class preBattleManager : MonoBehaviour
 
         if (_postBattleIdx >= _postBattleItems)
         {
+            _postBattleIdx--;
             _gameManager.saveGame();
             SceneManager.LoadScene(0);
         }

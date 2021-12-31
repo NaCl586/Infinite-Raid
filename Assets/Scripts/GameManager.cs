@@ -67,7 +67,6 @@ public class GameManager : MonoBehaviour
     public Text _skillDesc;
     public Text _APNeeded;
     public Text[] _skillNames;
-    public List<Skill> _skill;
 
     [Header("Equippable List")]
     public Equippable _equippable;
@@ -94,7 +93,16 @@ public class GameManager : MonoBehaviour
     private int _selectedAction = 0;
     private int _selectedEnemy = 0;
     private int _selectedSkill = -1; //-1 artinya normal attack
+    private int _selectedSkillMenu = 0;
     private int _selectedHero = 0; //for skill, krn pasti player cuma bs control siapapun di index 0
+
+    //skill effects
+    public GameObject _defenseUp;
+    public Text _defenseUpText;
+    private int _prerseveranceTurnsRemaining;
+    private Enemy _birdOfPreyEnemyTarget;
+    public GameObject _sleepyGameObject;
+    private GameObject _sleepyGameObjectRef;
 
     // Start is called before the first frame update
     void Start()
@@ -261,6 +269,7 @@ public class GameManager : MonoBehaviour
 
         initHP = initHP * _scalingMultiplier;
         e.setHP((int)initHP);
+        e.setAP(0);
 
         return e;
     }
@@ -315,8 +324,12 @@ public class GameManager : MonoBehaviour
             epos.transform.DOMove(Positions[i + 4].transform.position, 0.5f);
         }
 
-        //init skill list
-        //_initSkillCount = 1;
+        _selectedSkill = -1;
+
+        _prerseveranceTurnsRemaining = 0;
+        _defenseUp.SetActive(false);
+
+        _birdOfPreyEnemyTarget = null;
 
         //UI Init
         _levelUpBar.SetActive(false);
@@ -344,7 +357,7 @@ public class GameManager : MonoBehaviour
         GameObject dmgText = Instantiate(Damage);
         dmgText.transform.position = character.transform.position;
         dmgText.transform.GetChild(0).GetComponent<Text>().color = heal ? Color.green : Color.white;
-        if (heal) _sfx.heal();
+        if (heal && _selectedSkill != 6) _sfx.heal();
         dmgText.transform.GetChild(0).GetComponent<Text>().text = amount.ToString();
         dmgText.transform.DOMoveY(dmgText.transform.position.y + 0.5f, 0.3f).OnComplete(() => {
             dmgText.transform.DOMoveY(dmgText.transform.position.y - 0.5f, 0.3f).OnComplete(() => {
@@ -368,18 +381,15 @@ public class GameManager : MonoBehaviour
             _skillBar.transform.DOMoveX(_skillBar.transform.position.x + 11.5f, dur);
             _upperBar.transform.DOMoveY(_upperBar.transform.position.y - 2.25f, dur);
 
-            foreach(int n in _hero[0]._equippedArmor._skills)
-            {
-                if(n != -1) _skill.Add(_skillList._skillList[n]);
-            }
-
             foreach (Text t in _skillNames)
                 t.gameObject.SetActive(false);
 
-            for (int i = 0; i < _skill.Count; i++)
+            for (int i = 0; i < _hero[_selectedHero]._equippedArmor._slots; i++)
             {
+                if (_hero[_selectedHero]._equippedArmor._skills[i] == -1) continue;
+
                 _skillNames[i].gameObject.SetActive(true);
-                _skillNames[i].text = _skill[i]._skillName;
+                _skillNames[i].text = _skillList._skillList[_hero[_selectedHero]._equippedArmor._skills[i]]._skillName;
             }
 
         }
@@ -387,9 +397,6 @@ public class GameManager : MonoBehaviour
         {
             _skillBar.transform.DOMoveX(_skillBar.transform.position.x - 11.5f, dur).OnComplete(() => {_skillBar.SetActive(false); });
             _upperBar.transform.DOMoveY(_upperBar.transform.position.y + 2.25f, dur).OnComplete(() => { _upperBar.SetActive(false); });
-
-            //clear all, then add idx 0 again
-            _skill.Clear();
         }
     }
 
@@ -412,10 +419,10 @@ public class GameManager : MonoBehaviour
                     {
                         arrowStartTime = Time.time;
                         _sfx.cursor();
+                        _selectedSkill = -1;
                         _selectedEnemy = 0;
                         _selectedMenu = menuState.enemySelect;
                         arrow.SetActive(true);
-                        _selectedSkill = -1;
                         clearActionMenu();
                         setEnemyMenu();
                     }
@@ -424,7 +431,8 @@ public class GameManager : MonoBehaviour
                         arrowStartTime = Time.time;
                         _sfx.cursor();
                         _selectedMenu = menuState.skillSelect;
-                        _selectedSkill = 0;
+                        if (_selectedSkill == -1) _selectedSkill = 0;
+                        _selectedSkillMenu = 0;
                         clearActionMenu();
                         displaySkillMenuAnim(true, true);
                         setSkillMenu();
@@ -446,6 +454,7 @@ public class GameManager : MonoBehaviour
             {
                 if (Input.GetKey(KeyCode.UpArrow) && (Time.time - arrowStartTime) > 0.175f) changeSkillMenu(-1);
                 else if (Input.GetKey(KeyCode.DownArrow) && (Time.time - arrowStartTime) > 0.175f) changeSkillMenu(1);
+
                 if (Input.GetKey(KeyCode.Escape) && (Time.time - arrowStartTime) > 0.175f)
                 {
                     arrowStartTime = Time.time;
@@ -453,10 +462,9 @@ public class GameManager : MonoBehaviour
                     _selectedMenu = menuState.actionSelect;
                     displaySkillMenuAnim(false, true);
                     clearSkillMenu();
-                    _selectedSkill = -1;
                     setActionMenu();
                 }
-                if (Input.GetKey(KeyCode.Return) && _hero[0].getAP() >= _skill[_selectedSkill]._APNeeded && (Time.time - arrowStartTime) > 0.175f)
+                if (Input.GetKey(KeyCode.Return) && _hero[0].getAP() >= _skillList._skillList[_selectedSkill]._APNeeded && (Time.time - arrowStartTime) > 0.175f)
                 {
                     arrowStartTime = Time.time;
                     _sfx.cursor();
@@ -466,6 +474,34 @@ public class GameManager : MonoBehaviour
                         _selectedMenu = menuState.heroSelect;
                         arrow.SetActive(true);
                         setHeroMenu();
+                    }
+                    //skill 1 - preserverance: langsung set turn = 3
+                    else if (_selectedSkill == 1)
+                    {
+                        _selectedMenu = menuState.skillInProgress;
+                        arrow.SetActive(false);
+                        displaySkillMenuAnim(false, false);
+                        clearHeroMenu(true);
+                        clearSkillMenu();
+                        useSkill(_selectedSkill, 0, -1);
+                    }
+                    //skill yg perlu cari subject: indeks 2,3,4,5
+                    else if (_selectedSkill >= 2 && _selectedSkill <= 5)
+                    {
+                        _selectedEnemy = 0;
+                        _selectedMenu = menuState.enemySelect;
+                        arrow.SetActive(true);
+                        setEnemyMenu();
+                    }
+                    //skill semua subject: 6,7,8
+                    else if(_selectedSkill >= 6 && _selectedSkill <= 8)
+                    {
+                        _selectedMenu = menuState.skillInProgress;
+                        arrow.SetActive(false);
+                        displaySkillMenuAnim(false, false);
+                        clearHeroMenu(true);
+                        clearSkillMenu();
+                        useSkill(_selectedSkill, 0, -1);
                     }
                 }
             }
@@ -481,7 +517,7 @@ public class GameManager : MonoBehaviour
                     _sfx.cursor();
                     _selectedMenu = menuState.skillSelect;
                     arrow.SetActive(false);
-                    _selectedSkill = 0;
+                    _selectedSkillMenu = 0;
                     clearHeroMenu(true);
                     setSkillMenu();
                 }
@@ -489,7 +525,7 @@ public class GameManager : MonoBehaviour
                 {
                     arrowStartTime = Time.time;
                     _sfx.cursor();
-                    _selectedMenu = menuState.healingInProgress;
+                    _selectedMenu = menuState.skillInProgress;
                     arrow.SetActive(false);
                     displaySkillMenuAnim(false, false);
                     clearHeroMenu(true);
@@ -520,7 +556,30 @@ public class GameManager : MonoBehaviour
                     arrow.SetActive(false);
                     clearEnemyMenu();
                     //regular attack
-                    if(_selectedSkill == -1) PlayerGelud(0,_selectedEnemy);
+                    if (_selectedSkill == -1)
+                    {
+                        PlayerGelud(0, _selectedEnemy);
+                    }
+                    //skill serang satu enemy: 2, 4, 5
+                    else if(_selectedSkill == 2 || _selectedSkill == 4 || _selectedSkill == 5)
+                    {
+                        arrow.SetActive(false);
+                        displaySkillMenuAnim(false, false);
+                        clearHeroMenu(true);
+                        clearSkillMenu();
+                        useSkill(_selectedSkill, 0, -1);
+                        PlayerGelud(0, _selectedEnemy);
+                    }
+                    //apply efek birdofprey
+                    else if(_selectedSkill == 3)
+                    {
+                        _selectedMenu = menuState.skillInProgress;
+                        arrow.SetActive(false);
+                        displaySkillMenuAnim(false, false);
+                        clearHeroMenu(true);
+                        clearSkillMenu();
+                        useSkill(_selectedSkill, 0, _selectedEnemy);
+                    }
                 }
             }
         }
@@ -577,6 +636,7 @@ public class GameManager : MonoBehaviour
     void endPlayerTurn(int user)
     {
         regenerateAP(true, user);
+        _selectedSkill = -1; //reset selected skill
         if (_hero.Count > 1) _gameState = GameState.npcTurn; //AI turn
         else _gameState = GameState.enemyTurn;
     }
@@ -657,6 +717,8 @@ public class GameManager : MonoBehaviour
         yield return new WaitForSecondsRealtime(1.5f);
         for (int i = 0; i < _enemy.Count; i++)
         {
+            if (_enemy[i] == _birdOfPreyEnemyTarget) continue;
+
             //kalo udah battle end, jgn diterusin
             if (_gameState == GameState.battleEnd) break;
 
@@ -677,6 +739,19 @@ public class GameManager : MonoBehaviour
             setActionMenu();
             _selectedSkill = -1;
             regenerateAP(true, -1);
+
+            if (_prerseveranceTurnsRemaining != 0) _prerseveranceTurnsRemaining--;
+            _defenseUpText.text = _prerseveranceTurnsRemaining.ToString();
+
+            if (_prerseveranceTurnsRemaining == 0)
+            {
+                _defenseUpText.DOColor(Color.clear, 0.5f);
+                _defenseUp.GetComponent<SpriteRenderer>().DOColor(Color.clear, 0.5f);
+            }
+            _birdOfPreyEnemyTarget = null;
+            _sleepyGameObjectRef.GetComponent<SpriteRenderer>().DOColor(Color.clear, 0.5f).OnComplete(()=> {
+                Destroy(_sleepyGameObjectRef);
+            });
         }
         enemyAttackStarted = false;
     }
@@ -698,14 +773,117 @@ public class GameManager : MonoBehaviour
             _hero[targetIndex].setHP(newHP);
             StartCoroutine(healAnim(addedHP, userIndex, targetIndex));
         }
+        //Preserverance
+        else if(skillIndex == 1)
+        {
+            //pay AP cost
+            _hero[userIndex].setAP(_hero[userIndex].getAP() - _skillList._skillList[skillIndex]._APNeeded);
+
+            //preserverance effect
+            _sfx.preserverance();
+            _prerseveranceTurnsRemaining = 3;
+            _defenseUp.SetActive(true);
+            _defenseUpText.text = _prerseveranceTurnsRemaining.ToString();
+
+            _defenseUpText.color = _defenseUp.GetComponent<SpriteRenderer>().color = Color.clear;
+            _defenseUpText.DOColor(Color.white, 0.5f);
+            _defenseUp.GetComponent<SpriteRenderer>().DOColor(Color.white, 0.5f);
+
+            StartCoroutine(delayBeforeNextTurn(1f, userIndex));
+        }
+
+        //bird of prey
+        else if(skillIndex == 3)
+        {
+            //pay AP cost
+            _hero[userIndex].setAP(_hero[userIndex].getAP() - _skillList._skillList[skillIndex]._APNeeded);
+
+            //bird of prey effect
+            _sfx.birdOfPrey();
+            _birdOfPreyEnemyTarget = _enemy[targetIndex];
+
+            _sleepyGameObjectRef = Instantiate(_sleepyGameObject);
+            _sleepyGameObjectRef.transform.position = _enemy[targetIndex].gameObject.transform.position + new Vector3(0.75f, 0.875f);
+            _sleepyGameObjectRef.GetComponent<SpriteRenderer>().color = Color.clear;
+            _sleepyGameObjectRef.GetComponent<SpriteRenderer>().DOColor(Color.white, 0.5f);
+
+            StartCoroutine(delayBeforeNextTurn(1f, userIndex));
+        }
+
+        //Sunlance Strike
+        else if (skillIndex == 2)
+        {
+            //pay AP cost
+            _hero[userIndex].setAP(_hero[userIndex].getAP() - _skillList._skillList[skillIndex]._APNeeded);
+        }
+        //Chrono Slash
+        else if (skillIndex == 4)
+        {
+            //pay AP cost
+            _hero[userIndex].setAP(_hero[userIndex].getAP() - _skillList._skillList[skillIndex]._APNeeded);
+        }
+        //Midnight Elegance
+        else if(skillIndex == 5)
+        {
+            //pay AP cost
+            _hero[userIndex].setAP(_hero[userIndex].getAP() - _skillList._skillList[skillIndex]._APNeeded);
+        }
+
+        //Lunar Blessing
+        else if (skillIndex == 6)
+        {
+            //pay AP cost
+            _hero[userIndex].setAP(_hero[userIndex].getAP() - _skillList._skillList[skillIndex]._APNeeded);
+
+            //healing effect
+            int[] addedHP = new int[4];
+
+            for(int i = 0; i < _hero.Count; i++)
+            {
+                addedHP[i] = Random.Range(25, 41) * _hero[i].getNetMaxHP() / 100;
+                int maxHP = _hero[i].getNetMaxHP();
+                int newHP = addedHP[i] + _hero[i].getHP();
+                if (newHP > maxHP) newHP = maxHP;
+                _hero[i].setHP(newHP);
+            }
+
+            StartCoroutine(healAnimAll(addedHP, userIndex));
+        }
+
+        //Firestorm / daisycutter
+        else if (skillIndex == 7 || skillIndex == 8)
+        {
+            //pay AP cost
+            _hero[userIndex].setAP(_hero[userIndex].getAP() - _skillList._skillList[skillIndex]._APNeeded);
+            PlayerGelud(userIndex, -1);
+        }
     }
 
     #endregion
+
+    IEnumerator delayBeforeNextTurn(float delay, int userIndex)
+    {
+        yield return new WaitForSeconds(1f + delay);
+        endPlayerTurn(userIndex);
+    }
 
     IEnumerator healAnim(int addedHP, int userIndex, int targetIndex)
     {
         yield return new WaitForSeconds(0.5f);
         InstantiateDamage(addedHP, _hero[targetIndex].gameObject, true);
+        yield return new WaitForSeconds(1f);
+        endPlayerTurn(userIndex);
+    }
+
+    IEnumerator healAnimAll(int[] addedHP, int userIndex)
+    {
+        yield return new WaitForSeconds(0.5f);
+
+        for(int i = 0; i < _hero.Count; i++)
+            InstantiateDamage(addedHP[i], _hero[i].gameObject, true);
+
+        _sfx.lunarBlessing();
+
         yield return new WaitForSeconds(1f);
         endPlayerTurn(userIndex);
     }
@@ -774,36 +952,46 @@ public class GameManager : MonoBehaviour
     {
         _sfx.cursor();
         arrowStartTime = Time.time;
-        if (dir == 1) _selectedSkill++;
-        else if (dir == -1) _selectedSkill--;
-        if (_selectedSkill < 0) _selectedSkill = _skill.Count - 1;
-        if (_selectedSkill >= _skill.Count) _selectedSkill = 0;
+        if (dir == 1) _selectedSkillMenu++;
+        else if (dir == -1) _selectedSkillMenu--;
+
+        int reps = _hero[_selectedHero]._equippedArmor._slots;
+        int max = 0;
+        for(int i = 0; i < reps; i++)
+            if (_hero[_selectedHero]._equippedArmor._skills[i] != -1) max++;
+
+        if (_selectedSkillMenu < 0) _selectedSkillMenu = max - 1;
+        if (_selectedSkillMenu >= max) _selectedSkillMenu = 0;
+
+        _selectedSkill = _hero[_selectedHero]._equippedArmor._skills[_selectedSkillMenu];
         setSkillMenu();
     }
 
     void setSkillMenu()
     {
         clearSkillMenu();
-        if (_skill.Count == 0) return;
 
-        if (_hero[0].getAP() < _skill[_selectedSkill]._APNeeded)
-            _skillNames[_selectedSkill].color = Color.red;
+        if (_hero[0].getAP() < _skillList._skillList[_selectedSkill]._APNeeded)
+            _skillNames[_selectedSkillMenu].color = Color.red;
         else
-            _skillNames[_selectedSkill].color = Color.yellow;
-        _skillDesc.text = _skill[_selectedSkill]._skillDesc.ToString();
-        _APNeeded.text = _skill[_selectedSkill]._APNeeded.ToString();
+            _skillNames[_selectedSkillMenu].color = Color.yellow;
+
+        _skillDesc.text = _skillList._skillList[_selectedSkill]._skillDesc.ToString();
+        _APNeeded.text = _skillList._skillList[_selectedSkill]._APNeeded.ToString();
     }
 
     void clearSkillMenu()
     {
-        if (_skill.Count == 0) return;
-
-        foreach (Text t in _skillNames)
+        int reps = _hero[_selectedHero]._equippedArmor._slots;
+        for (int i = 0; i < reps; i++)
         {
-            if (_hero[0].getAP() < _skill[_selectedSkill]._APNeeded)
-                t.color = Color.gray;
+            int index = _hero[_selectedHero]._equippedArmor._skills[i];
+            if (index == -1) continue;
+
+            if (_hero[0].getAP() < _skillList._skillList[index]._APNeeded)
+                _skillNames[i].color = Color.gray;
             else
-                t.color = Color.white;
+                _skillNames[i].color = Color.white;
         }
     }
     #endregion
@@ -843,25 +1031,95 @@ public class GameManager : MonoBehaviour
     {
         npcAttackInProgress = true;
 
-        int playerDamage =
-            Random.Range(_hero[attackerIndex].getMAtk().min, _hero[attackerIndex].getMAtk().max + 1) +
-            Random.Range(_hero[attackerIndex].getRAtk().min, _hero[attackerIndex].getRAtk().max + 1) +
-            _hero[attackerIndex]._equippedWeapon._statsGiven[1] +
-            _hero[attackerIndex]._equippedWeapon._statsGiven[2];
+        float _MAtkMultiplier = 1f, _RAtkMultiplier = 1f, _RDefMultiplier = 1f;
 
-        int enemyDefense =
-            Random.Range(_enemy[enemyIndex].getMDef().min, _enemy[enemyIndex].getMDef().max + 1) +
-            Random.Range(_enemy[enemyIndex].getRDef().min, _enemy[enemyIndex].getRDef().max + 1);
+        if (_selectedSkill == -1) _MAtkMultiplier = 1f;
+        else if (_selectedSkill == 4) _MAtkMultiplier = 2.5f;
+        else if (_selectedSkill == 5) _MAtkMultiplier = 3f;
+        else if (_selectedSkill == 8) _RAtkMultiplier = 2.5f;
 
-        float totalDamage = _scalingMultiplier * (100 - enemyDefense) * playerDamage / 100;
-        _enemy[enemyIndex].setHP(_enemy[enemyIndex].getHP() - (int)totalDamage);
-        StartCoroutine(PlayerGeludAnim(attackerIndex, (int)totalDamage, enemyIndex)); 
+        if (_selectedSkill == -1) _RAtkMultiplier = 1f;
+        else if (_selectedSkill == 2) _RAtkMultiplier = 4f;
+        else if (_selectedSkill == 7) _RAtkMultiplier = 2f;
+
+        if (_selectedSkill == -1) _RDefMultiplier = 1f;
+        else if (_selectedSkill == 7) _RDefMultiplier = 0.75f;
+
+        int playerDamage, enemyDefense;
+        float[] totalDamages = new float[4];
+        float totalDamage = 0;
+
+        if (_selectedSkill != 7 && _selectedSkill != 8)
+        {
+            playerDamage = (int)(
+                (Random.Range(_hero[attackerIndex].getMAtk().min, _hero[attackerIndex].getMAtk().max + 1) * _MAtkMultiplier) +
+                (Random.Range(_hero[attackerIndex].getRAtk().min, _hero[attackerIndex].getRAtk().max + 1) * _RAtkMultiplier) +
+                _hero[attackerIndex]._equippedWeapon._statsGiven[1] +
+                _hero[attackerIndex]._equippedWeapon._statsGiven[2]);
+
+            enemyDefense = (int)
+                (Random.Range(_enemy[enemyIndex].getMDef().min, _enemy[enemyIndex].getMDef().max + 1) +
+                (Random.Range(_enemy[enemyIndex].getRDef().min, _enemy[enemyIndex].getRDef().max + 1) * _RDefMultiplier));
+
+            totalDamage = _scalingMultiplier * (100 - enemyDefense) * playerDamage / 100;
+            _enemy[enemyIndex].setHP(_enemy[enemyIndex].getHP() - (int)totalDamage);
+        }
+        else
+        {
+            for (int i = 0; i < _enemy.Count; i++)
+            {
+                playerDamage = (int)(
+                    (Random.Range(_hero[attackerIndex].getMAtk().min, _hero[attackerIndex].getMAtk().max + 1) * _MAtkMultiplier) +
+                    (Random.Range(_hero[attackerIndex].getRAtk().min, _hero[attackerIndex].getRAtk().max + 1) * _RAtkMultiplier) +
+                    _hero[attackerIndex]._equippedWeapon._statsGiven[1] +
+                    _hero[attackerIndex]._equippedWeapon._statsGiven[2]);
+
+                enemyDefense = (int)
+                    (Random.Range(_enemy[i].getMDef().min, _enemy[i].getMDef().max + 1) +
+                    (Random.Range(_enemy[i].getRDef().min, _enemy[i].getRDef().max + 1) * _RDefMultiplier));
+
+                totalDamages[i] = _scalingMultiplier * (100 - enemyDefense) * playerDamage / 100;
+                _enemy[i].setHP(_enemy[i].getHP() - (int)totalDamages[i]);
+            }
+        }
+
+        if (_selectedSkill != 7 && _selectedSkill != 8)
+            StartCoroutine(PlayerGeludAnim(attackerIndex, (int)totalDamage, enemyIndex));
+        else
+            StartCoroutine(PlayerTawuranAnim(attackerIndex, totalDamages));
+    }
+
+    IEnumerator PlayerTawuranAnim(int attackerIndex, float[] totalDamages)
+    {
+        _hero[attackerIndex].dealDamageAnim();
+
+        if (_selectedSkill == 7) _sfx.firestorm();
+        else if (_selectedSkill == 8) _sfx.daisycutter();
+
+        yield return new WaitForSecondsRealtime(2f);
+        for(int i = 0; i < _enemy.Count; i++)
+            _enemy[i].takeDamageAnim();
+
+        yield return new WaitForSecondsRealtime(0.8f);
+        for (int i = 0; i < _enemy.Count; i++)
+            InstantiateDamage((int)totalDamages[i], _enemy[i].gameObject, false);
+
+        yield return new WaitForSecondsRealtime(1f);
+        updateGameCondition();
+
+        if (_gameState != GameState.battleEnd) endPlayerTurn(-1);
+        npcAttackInProgress = false;
     }
 
     IEnumerator PlayerGeludAnim(int attackerIndex, int totalDamage, int enemyIndex)
     {
         _hero[attackerIndex].dealDamageAnim();
-        _sfx.attack();
+
+        if (_selectedSkill == -1) _sfx.attack();
+        else if (_selectedSkill == 2) _sfx.sunlanceStrike();
+        else if (_selectedSkill == 4) _sfx.chronoSlash();
+        else if (_selectedSkill == 5) _sfx.midnightElegance();
+
         yield return new WaitForSecondsRealtime(1f);
         _enemy[enemyIndex].takeDamageAnim();
         yield return new WaitForSecondsRealtime(0.8f);
@@ -890,6 +1148,10 @@ public class GameManager : MonoBehaviour
             _hero[heroIndex]._equippedWeapon._statsGiven[4];
 
         float totalDamage = _scalingMultiplier * (100 - playerDefense) * enemyDamage / 100;
+
+        if (_prerseveranceTurnsRemaining > 0) totalDamage -= 30;
+        if (totalDamage < 0) totalDamage = 0;
+
         _hero[heroIndex].setHP(_hero[heroIndex].getHP() - (int)totalDamage);
         StartCoroutine(EnemyGeludAnim((int)totalDamage, enemyIndex, heroIndex));
     }
@@ -991,7 +1253,7 @@ public class GameManager : MonoBehaviour
 
     #region game win/lose
 
-    public GameObject _endGameHeader;
+    [HideInInspector] public GameObject _endGameHeader;
     IEnumerator gameLoseAnim()
     {
         yield return new WaitForSecondsRealtime(1f);
@@ -1261,7 +1523,7 @@ public class GameManager : MonoBehaviour
         enemySelect,
         heroSelect,
         attackInProgress,
-        healingInProgress,
+        skillInProgress,
     };
 
     #endregion
