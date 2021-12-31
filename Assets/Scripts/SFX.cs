@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class SFX : MonoBehaviour
 {
+    [Header ("General Sounds")]
     public AudioSource _audioSource;
     public AudioClip _cursor;
     public AudioClip _attack;
@@ -12,6 +13,31 @@ public class SFX : MonoBehaviour
     public AudioClip _select;
     public AudioClip _heal;
     public AudioClip _confirm;
+
+    [Header("Skill Sound")]
+    public AudioClip _preserverance;
+    public void preserverance() { _audioSource.PlayOneShot(_preserverance); }
+
+    public AudioClip _sunlanceStrike;
+    public void sunlanceStrike() { _audioSource.PlayOneShot(_sunlanceStrike); }
+
+    public AudioClip _midnightElegance;
+    public void midnightElegance() { _audioSource.PlayOneShot(_midnightElegance); }
+
+    public AudioClip _birdOfPrey;
+    public void birdOfPrey() { _audioSource.PlayOneShot(_birdOfPrey); }
+
+    public AudioClip _chronoSlash;
+    public void chronoSlash() { _audioSource.PlayOneShot(_chronoSlash); }
+
+    public AudioClip _lunarBlessing;
+    public void lunarBlessing() { _audioSource.PlayOneShot(_lunarBlessing); }
+
+    public AudioClip _firestorm;
+    public void firestorm() { _audioSource.PlayOneShot(_firestorm); }
+
+    public AudioClip _daisycutter;
+    public void daisycutter() { _audioSource.PlayOneShot(_daisycutter); }
 
     // Start is called before the first frame update
     void Start() { _audioSource = this.GetComponent<AudioSource>();  }
