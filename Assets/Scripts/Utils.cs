@@ -26,7 +26,7 @@ public static class Utils
         int reps = (_wave) / 5;
         for (int i = 0; i < reps; i++)
         {
-            num = (num * 100) / 125;
+            num = (num * 125) / 100;
         }
         return num;
     }

@@ -26,10 +26,9 @@ public class GameManager : MonoBehaviour
 {
     [Header("Debug")]
     public bool enableDebug = false;
-    [SerializeField] [Range(1, 4)] private int _initPlayerCount;
-    [SerializeField] [Range(1, 3)] private int _initEnemyCount;
     private int _initSkillCount;
-    [SerializeField] [Range(1, 4)] private int _initEnemyVariation; //variasi enemy yg ada, makin tinggi makin susah (1-4)
+    [SerializeField] private Vector3 _enemiesDebug;
+    private int _enemyCount;
     private float _scalingMultiplier = 1;
 
     [Header("GUI")]
@@ -119,7 +118,7 @@ public class GameManager : MonoBehaviour
 
     public Weapon generateWeapon(int _weaponIndexRNG)
     {
-        Weapon w = _equippable._weapons[_weaponIndexRNG];
+        Weapon w = Instantiate(_equippable._weapons[_weaponIndexRNG]);
 
         List<int> rng_weapon = new List<int>();
         for (int i = 0; i < 4; i++) { rng_weapon.Add(i); }
@@ -168,7 +167,7 @@ public class GameManager : MonoBehaviour
 
     public Armor generateArmor(int _armorIndexRNG)
     {
-        Armor a = _equippable._armors[_armorIndexRNG];
+        Armor a = Instantiate(_equippable._armors[_armorIndexRNG]);
 
         int reps = Random.Range(1, 2 + 1);
 
@@ -255,6 +254,17 @@ public class GameManager : MonoBehaviour
         h.gameObject.SetActive(false);
     }
 
+    public Enemy generateEnemy(int index)
+    {
+        Enemy e = Instantiate(_enemyPool[index]);
+        float initHP = Random.Range(e.getMaxHP().min, e.getMaxHP().max + 1);
+
+        initHP = initHP * _scalingMultiplier;
+        e.setHP((int)initHP);
+
+        return e;
+    }
+
     public void initGame()
     { 
         _music.battle();
@@ -285,16 +295,20 @@ public class GameManager : MonoBehaviour
         foreach (Text t in _enemyNames)
             t.gameObject.SetActive(false);
 
-        for (int i = 0; i < _initEnemyCount; i++)
-        {
-            _enemyNames[i].gameObject.SetActive(true);
-            int rng = Random.Range(1, 100) % _initEnemyVariation;
-            Enemy e = Instantiate(_enemyPool[rng]);
-            float initHP = Random.Range(e.getMaxHP().min, e.getMaxHP().max + 1);
+        _enemyCount = 0;
+        int[] _initEnemies = { (int)_enemiesDebug.x, (int)_enemiesDebug.y, (int)_enemiesDebug.z };
 
-            initHP = initHP * _scalingMultiplier;
-            e.setHP((int)initHP);
+        for (int i = 0; i < 3; i++)
+        {
+            int idx = _initEnemies[i];
+            if (idx == -1) continue;
+
+            _enemyCount++;
+
+            _enemyNames[i].gameObject.SetActive(true);
+            Enemy e = generateEnemy(idx);
             _enemy.Add(e);
+
             _enemyNames[i].text = e._name;
             Transform epos = e.gameObject.transform;
             epos.position = new Vector2(-7, 0);
@@ -1065,7 +1079,7 @@ public class GameManager : MonoBehaviour
     {
         _pressAnyKeyMessage.gameObject.SetActive(false);
 
-        for(int i = 0; i < _initEnemyCount; i++)
+        for(int i = 0; i < _enemyCount; i++)
         {
             bool _dropItem = Random.Range(1, 101) <= 30 ? false : true;
             if (!_dropItem) continue;
@@ -1170,7 +1184,7 @@ public class GameManager : MonoBehaviour
             int weaponIndex = 0, armorIndex = 0;
             for (int j = 0; j < _equippable._weapons.Length; j++)
             {
-                if (_equippable._weapons[j] == h._equippedWeapon)
+                if (_equippable._weapons[j]._name == h._equippedWeapon._name)
                 {
                     weaponIndex = j;
                     break;
@@ -1178,7 +1192,7 @@ public class GameManager : MonoBehaviour
             }
             for (int j = 0; j < _equippable._armors.Length; j++)
             {
-                if (_equippable._armors[j] == h._equippedArmor)
+                if (_equippable._armors[j]._name == h._equippedArmor._name)
                 {
                     armorIndex = j;
                     break;

@@ -1286,9 +1286,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   enableDebug: 1
-  _initPlayerCount: 1
-  _initEnemyCount: 1
-  _initEnemyVariation: 1
+  _enemiesDebug: {x: 0, y: -1, z: -1}
   preBattle: {fileID: 656415494}
   game: {fileID: 955315909}
   _preBattleManager: {fileID: 1998833625}
@@ -3586,8 +3584,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: -169.4, y: -81.3443}
-  m_SizeDelta: {x: 290.57663, y: 38.210564}
+  m_AnchoredPosition: {x: 28.4, y: -81.3443}
+  m_SizeDelta: {x: 537.77893, y: 38.210564}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &312279319
 MonoBehaviour:
@@ -18954,8 +18952,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: -169.4, y: -170}
-  m_SizeDelta: {x: 290.57663, y: 38.210564}
+  m_AnchoredPosition: {x: 28.4, y: -170}
+  m_SizeDelta: {x: 537.77893, y: 38.210564}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &1422850294
 MonoBehaviour:
@@ -19065,8 +19063,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: -169.4, y: -38.380615}
-  m_SizeDelta: {x: 290.57663, y: 38.210564}
+  m_AnchoredPosition: {x: 28.4, y: -38.380615}
+  m_SizeDelta: {x: 537.77893, y: 38.210564}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &1425048473
 MonoBehaviour:
@@ -27742,6 +27740,7 @@ MonoBehaviour:
     _armorStats:
     - {fileID: 464524147}
     - {fileID: 492960266}
+    - {fileID: 1560173060}
   _skills:
   - {fileID: 534734077}
   - {fileID: 2003766914}
@@ -29043,8 +29042,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: -169.4, y: -126.244316}
-  m_SizeDelta: {x: 290.57663, y: 38.210564}
+  m_AnchoredPosition: {x: 28.4, y: -126.244316}
+  m_SizeDelta: {x: 537.77893, y: 38.210564}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &2089986383
 MonoBehaviour:

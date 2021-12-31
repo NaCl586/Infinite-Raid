@@ -193,7 +193,7 @@ public class preBattleManager : MonoBehaviour
 
             //loading weapon
             int weaponIdx = PlayerPrefs.GetInt("HeroWeaponIdx" + index, 0); //dapetin tipe
-            h._equippedWeapon = _equippable._weapons[weaponIdx]; //masukin ke player
+            h._equippedWeapon = Instantiate(_equippable._weapons[weaponIdx]); //masukin ke player
             for (int j = 0; j < 5; j++) //copy tiap stats
             {
                 h._equippedWeapon._statsGiven[j] = PlayerPrefs.GetInt("HeroWeaponIdx" + index + "_wsIdx" + j, 0);
@@ -201,7 +201,7 @@ public class preBattleManager : MonoBehaviour
 
             //loading armor
             int armorIdx = PlayerPrefs.GetInt("HeroArmorIdx" + index, 0); //dapetin tipe
-            h._equippedArmor = _equippable._armors[armorIdx]; //masukin ke player
+            h._equippedArmor = Instantiate(_equippable._armors[armorIdx]); //masukin ke player
             for (int j = 0; j < 3; j++) //copy tiap stats
             {
                 h._equippedArmor._statsGiven[j] = PlayerPrefs.GetInt("HeroArmorIdx" + index + "_asIdx" + j, 0);
@@ -784,10 +784,13 @@ public class preBattleManager : MonoBehaviour
             {
                 arrowStartTime = Time.time;
                 _gameManager._hero[_selectedHero]._equippedArmor._skills[_selectedSkillToReplace] = _selectedSkill + 1;
-                _skills[_selectedSkillToReplace].text = _skillList._skillList[_selectedSkill + 1]._skillName;
-                _skills[_selectedSkillToReplace].color = Color.white;
+                
                 _sfx.confirm();
                 selectSkill(_selectedSkill);
+
+                showHeroMenu();
+                _skills[_selectedSkillToReplace].color = Color.white;
+
                 _state = menuState.skillSelectMenu;
             }
         }
@@ -891,7 +894,7 @@ public class preBattleManager : MonoBehaviour
 
         if (_gameManager._armorDrops.Count != 0)
         {
-            Armor a = _gameManager._armorDrops[0];
+            Armor a = Instantiate(_gameManager._armorDrops[0]);
 
             _itemIcon.sprite = a._icon;
             _itemName.text = a._name;
@@ -977,6 +980,7 @@ public class preBattleManager : MonoBehaviour
         _skillCaption.text = _skillList._skillList[index + 1]._skillDesc;
 
         bool _onlyOneSkill = _gameManager._hero[_selectedHero]._equippedArmor._slots <= 1;
+
         bool[] valid = new bool[8];
         for (int i = 0; i < _skillNames.Length; i++)
         {
@@ -1004,7 +1008,6 @@ public class preBattleManager : MonoBehaviour
             int initWeaponIdx = 0;
             for (int j = 0; j < _gameManager._equippable._weapons.Length; j++)
                 if (_gameManager._hero[_selectedHero]._equippedWeapon._name == _gameManager._equippable._weapons[j]._name) initWeaponIdx = j;
-
 
             foreach (int j in _skillList._skillList[i + 1]._usableWeapons)
             {
