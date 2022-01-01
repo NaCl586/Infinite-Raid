@@ -67,6 +67,8 @@ public class GameManager : MonoBehaviour
     public Text _skillDesc;
     public Text _APNeeded;
     public Text[] _skillNames;
+    public GameObject _skillUsedBar;
+    public Text _skillUsedName;
 
     [Header("Equippable List")]
     public Equippable _equippable;
@@ -95,6 +97,7 @@ public class GameManager : MonoBehaviour
     private int _selectedSkill = -1; //-1 artinya normal attack
     private int _selectedSkillMenu = 0;
     private int _selectedHero = 0; //for skill, krn pasti player cuma bs control siapapun di index 0
+    private bool _enemyTawuran = false;
 
     //skill effects
     public GameObject _defenseUp;
@@ -305,7 +308,17 @@ public class GameManager : MonoBehaviour
             t.gameObject.SetActive(false);
 
         _enemyCount = 0;
-        int[] _initEnemies = { (int)_enemiesDebug.x, (int)_enemiesDebug.y, (int)_enemiesDebug.z };
+        int[] _initEnemies = new int[3];
+        if(enableDebug)
+        { 
+            _initEnemies[0] = (int)_enemiesDebug.x; 
+            _initEnemies[1] = (int)_enemiesDebug.y; 
+            _initEnemies[2] = (int)_enemiesDebug.z; 
+        }
+        else
+        {
+            _initEnemies = Utils._enemySpawn(_wave, _hero.Count);
+        }
 
         for (int i = 0; i < 3; i++)
         {
@@ -325,6 +338,7 @@ public class GameManager : MonoBehaviour
         }
 
         _selectedSkill = -1;
+        setUsedSkillBarCaption(_selectedSkill);
 
         _prerseveranceTurnsRemaining = 0;
         _defenseUp.SetActive(false);
@@ -400,6 +414,12 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    IEnumerator clearSkillUsedText(float time)
+    {
+        yield return new WaitForSecondsRealtime(time);
+        setUsedSkillBarCaption(-1);
+    }
+
     private float arrowStartTime;
     private bool enemyAttackInProgress, enemyAttackStarted;
     private bool npcAttackInProgress, npcAttackStarted;
@@ -441,6 +461,11 @@ public class GameManager : MonoBehaviour
                     {
                         arrowStartTime = Time.time;
                         _sfx.cursor();
+
+                        enemyGeludCaption("All party members' AP restored!");
+                        StartCoroutine(clearSkillUsedText(1f));
+                        _sfx.gainAP();
+
                         _selectedSkill = -1;
                         regenerateAP(false, -2);
                         clearActionMenu();
@@ -637,6 +662,7 @@ public class GameManager : MonoBehaviour
     {
         regenerateAP(true, user);
         _selectedSkill = -1; //reset selected skill
+        setUsedSkillBarCaption(_selectedSkill);
         if (_hero.Count > 1) _gameState = GameState.npcTurn; //AI turn
         else _gameState = GameState.enemyTurn;
     }
@@ -665,6 +691,7 @@ public class GameManager : MonoBehaviour
 
     #region gelud satu2
     //NPC satu2 gelud
+    //AI mechanics dimulai
     IEnumerator NPCGelud()
     {
         npcAttackStarted = true;
@@ -674,28 +701,296 @@ public class GameManager : MonoBehaviour
             //kalo udah battle end, jgn diterusin
             if (_gameState == GameState.battleEnd) break;
 
+            //get weapon dlu
+            Weapon w = _hero[i]._equippedWeapon;
+            Armor a = _hero[i]._equippedArmor;
+            int rng = Random.Range(0, _enemy.Count);
+            int target = -1;
             bool healFlag = false;
-            //AP > 13 = bisa heal
-            if (_hero[i].getAP() >= 13)
+            int hpLowCount = 0;
+
+            if (w._name == "Wand")
+            {
+                //cari yang bisa di heal
+                for (int j = 0; j < _hero.Count; j++)
+                {
+                    if ((_hero[j].getHP() * 100 / _hero[j].getNetMaxHP()) <= 30)
+                    {
+                        healFlag = true;
+                        target = j;
+                        //dan itung ada brp
+                        hpLowCount++;
+                    }
+                }
+                if(_hero[i].getAP() >= 13)
+                {
+                    if (healFlag)
+                    {
+                        if (hpLowCount == 1) //kalo cuma satu, heal that person aja
+                        {
+                            _selectedSkill = 0;
+                            useSkill(0, i, target);
+                        }
+                        else //kalo lebih
+                        {
+                            if (_hero[i].getAP() >= 15) //kalo lebih, cek AP cukup buat lunar blessing or not
+                            {
+                                _selectedSkill = 6;
+                                useSkill(6, i, -1);
+                            }
+                            if (_hero[i].getAP() >= 13) //kalo ga cukup, cek AP cukup buat prayer of healing or not
+                            {
+                                _selectedSkill = 0;
+                                useSkill(0, i, target);
+                            }
+                            else //no: basic attack
+                            {
+                                _selectedSkill = -1;
+                                PlayerGelud(i, rng);
+                            }
+                        }
+                    }
+                    else //kalo hp semua member msh banyak
+                    {
+                        if (_hero[i].getAP() >= 20) //sunlance strike
+                        {
+                            useSkill(2, i, rng);
+                            _selectedSkill = 2;
+                            PlayerGelud(i, rng);
+                        }
+                        else //no: basic attack
+                        {
+                            _selectedSkill = -1;
+                            PlayerGelud(i, rng);
+                        }
+                    }
+                }
+                else //no: basic attack
+                {
+                    _selectedSkill = -1;
+                    PlayerGelud(i, rng);
+                }
+            }
+            else if (w._name == "Gauntlet")
             {
                 //cari yg bisa diheal
-                for(int j = 0; j < _hero.Count; j++)
+                for (int j = 0; j < _hero.Count; j++)
                 {
-                    if((_hero[j].getHP() * 100 / _hero[j].getNetMaxHP()) <= 30){
-                        _selectedSkill = 0;
-                        useSkill(0,i,j);
+                    if ((_hero[j].getHP() * 100 / _hero[j].getNetMaxHP()) <= 30)
+                    {
                         healFlag = true;
+                        target = j;
                         break;
                     }
                 }
+                if (healFlag && _hero[i].getAP() >= 13) //yes
+                {
+                    _selectedSkill = 0;
+                    useSkill(0, i, target);
+                }
+                else
+                {
+                    if(_hero[i].getAP() >= 10)
+                    {
+                        //cari buffer
+                        bool buffer = false;
+                        for (int j = 0; j < _hero.Count; j++)
+                        {
+                            if (_hero[j]._equippedWeapon.isBuffer())
+                            {
+                                buffer = true;
+                                break;
+                            }
+                        }
+                        if (buffer) //yes there is buffer weapon
+                        {
+                            if (_hero[i].getAP() >= 18)
+                            {
+                                _selectedSkill = 5;
+                                useSkill(5, i, -1);
+                                PlayerGelud(i, rng);
+                            }
+                            else //no: basic attack
+                            {
+                                _selectedSkill = 5;
+                                PlayerGelud(i, rng);
+                            }
+                        }
+                        else //no: use preserverance
+                        {
+                            _selectedSkill = 1;
+                            useSkill(1, 0, -1);
+                        }
+                    }
+                    else //no: basic attack
+                    {
+                        _selectedSkill = -1;
+                        PlayerGelud(i, rng);
+                    }
+                }
             }
+            else if (w._name == "Bow")
+            {
+                //cari yg bisa diheal
+                for (int j = 0; j < _hero.Count; j++)
+                {
+                    if ((_hero[j].getHP() * 100 / _hero[j].getNetMaxHP()) <= 30)
+                    {
+                        healFlag = true;
+                        target = j;
+                        break;
+                    }
+                }
+                //hp low?
+                if (healFlag) //yes
+                {
+                    if (_hero[i].getAP() >= 13) //yes: use prayer of healing
+                    {
+                        _selectedSkill = 0;
+                        useSkill(0, i, target);
+                    }
+                    if (_hero[i].getAP() >= 8) //yes: use bird of prey
+                    {
+                        _selectedSkill = 3;
+                        useSkill(3, i, rng);
+                    }
+                    else //no: basic attack
+                    {
+                        _selectedSkill = -1;
+                        PlayerGelud(i, rng);
+                    }
+                }
+                else //no
+                {
+                    if (_hero[i].getAP() >= 20) //yes: use firestorm
+                    {
+                        _selectedSkill = 7;
+                        useSkill(7, i, -1);
+                    }
+                    else if (_hero[i].getAP() >= 8) //yes: use bird of prey
+                    {
+                        _selectedSkill = 3;
+                        useSkill(3, i, rng);
+                    }
+                    else //no: basic attack
+                    {
+                        _selectedSkill = -1;
+                        PlayerGelud(i, rng);
+                    }
+                }
+            }
+            else if (w._name == "Sword")
+            {
+                //cari yg bisa diheal
+                for (int j = 0; j < _hero.Count; j++)
+                {
+                    if ((_hero[j].getHP() * 100 / _hero[j].getNetMaxHP()) <= 30)
+                    {
+                        healFlag = true;
+                        target = j;
+                        break;
+                    }
+                }
+                //hp low?
+                if (healFlag) //yes
+                {
+                    if (_hero[i].getAP() >= 13) //yes: use prayer of healing
+                    {
+                        _selectedSkill = 0;
+                        useSkill(0, i, target);
+                    }
+                    if (_hero[i].getAP() >= 10) //yes: use chrono slash
+                    {
+                        _selectedSkill = 4;
+                        useSkill(4, i, -1);
+                        PlayerGelud(i, rng);
+                    }
+                    else //no: basic attack
+                    {
+                        _selectedSkill = -1;
+                        PlayerGelud(i, rng);
+                    }
+                }
+                else //no
+                {
+                    if (_hero[i].getAP() >= 18) //yes: use daisycutter
+                    {
+                        _selectedSkill = 5;
+                        useSkill(5, i, -1);
+                        PlayerGelud(i, rng);
+                    }
+                    else if (_hero[i].getAP() >= 10) //yes: use chrono slash
+                    {
+                        _selectedSkill = 4;
+                        useSkill(4, i, -1);
+                        PlayerGelud(i, rng);
+                    }
+                    else //no: basic attack
+                    {
+                        _selectedSkill = -1;
+                        PlayerGelud(i, rng);
+                    }
+                }
+            }
+            else if (w._name == "Morning Star")
+            {
+                //cari yg bisa diheal
+                for (int j = 0; j < _hero.Count; j++)
+                {
+                    if ((_hero[j].getHP() * 100 / _hero[j].getNetMaxHP()) <= 30)
+                    {
+                        healFlag = true;
+                        target = j;
+                        break;
+                    }
+                }
+                //hp low?
+                if (healFlag) //yes
+                {
+                    if (_hero[i].getAP() >= 13) //yes: use prayer of healing
+                    {
+                        _selectedSkill = 0;
+                        useSkill(0, i, target);
+                    }
+                    else //no: basic attack
+                    {
+                        _selectedSkill = -1;
+                        PlayerGelud(i, rng);
+                    }
+                }
+                else //no
+                {
+                    if (_hero[i].getAP() >= 20) //yes: use daisycutter
+                    {
+                        _selectedSkill = 8;
+                        useSkill(8, i, -1);
+                    }
+                    else if (_hero[i].getAP() >= 18) //yes: use midnight elegance
+                    {
+                        _selectedSkill = 5;
+                        useSkill(5, i, -1);
+                        PlayerGelud(i, rng);
+                    }
+                    else //no: basic attack
+                    {
+                        _selectedSkill = -1;
+                        PlayerGelud(i, rng);
+                    }
+                }
+            }
+            else
+            {
+                //preventive measure = basic atack
+                _selectedSkill = -1;
+                PlayerGelud(i, rng);
+            }
+
             if (healFlag)
             {
                 yield return new WaitForSecondsRealtime(3.8f);
                 continue;
             }
-            int rng = Random.Range(0, _enemy.Count);
-            PlayerGelud(i, Random.Range(0, _enemy.Count));
+
             while (npcAttackInProgress)
             {
                 yield return null;
@@ -722,8 +1017,57 @@ public class GameManager : MonoBehaviour
             //kalo udah battle end, jgn diterusin
             if (_gameState == GameState.battleEnd) break;
 
+            int rng = Random.Range(1, 100) % _hero.Count;
+
+            if (_wave > 5 && _enemy[i].getAP() >= 20)
+            {
+                //50:50 chance special attack
+                int fate = Random.Range(0, 2);
+                if(fate == 1) //special attack
+                {
+                    _enemy[i].setAP(0);
+                    _enemyTawuran = true;
+                    EnemyGelud(i, rng);
+                    continue;
+                }
+                else
+                {
+                    _enemy[i].setAP(Random.Range(10,16));
+                }
+            }
+            //keluar loop = gak tawuran
+            _enemyTawuran = false;
+
             //bakal beda2 tergantung enemy apa
-            EnemyGelud(i, Random.Range(1, 100) % _hero.Count);
+            if(_enemy[i]._name == "Rogue")
+            {
+                bool healer = false;
+                int target = 0;
+                for(int j = 0; j < _hero.Count; j++)
+                {
+                    if (_hero[j]._equippedWeapon.isHealer())
+                    {
+                        healer = true;
+                        target = j;
+                    }
+                }
+                //kalo ada healer, serang healer
+                if (healer)
+                    EnemyGelud(i, target);
+                else//kalo ga ada, equal chance
+                    EnemyGelud(i, rng);
+            }
+            else if(_enemy[i]._name == "Wraith")
+            {
+                //selalu serang player
+                EnemyGelud(i, 0);
+            }
+            else //golem and yeti
+            {
+                //equal chance
+                EnemyGelud(i, rng);
+            }
+
             while (enemyAttackInProgress)
             {
                 yield return null;
@@ -748,10 +1092,26 @@ public class GameManager : MonoBehaviour
                 _defenseUpText.DOColor(Color.clear, 0.5f);
                 _defenseUp.GetComponent<SpriteRenderer>().DOColor(Color.clear, 0.5f);
             }
+
+            if(_birdOfPreyEnemyTarget != null) {
+                _sleepyGameObjectRef.GetComponent<SpriteRenderer>().DOColor(Color.clear, 0.5f).OnComplete(() => {
+                    Destroy(_sleepyGameObjectRef);
+                });
+            }
+
             _birdOfPreyEnemyTarget = null;
-            _sleepyGameObjectRef.GetComponent<SpriteRenderer>().DOColor(Color.clear, 0.5f).OnComplete(()=> {
-                Destroy(_sleepyGameObjectRef);
-            });
+        }
+
+        for(int i = 0; i < _enemyCount; i++)
+        {
+            int APGainRNG = Random.Range(1, 6);
+            int APGain;
+
+            if (APGainRNG == 1 || APGainRNG == 2) APGain = 1;
+            else if (APGainRNG == 3 || APGainRNG == 4) APGain = 2;
+            else APGain = 3;
+
+            _enemy[i].setAP(_enemy[i].getAP() + APGain);
         }
         enemyAttackStarted = false;
     }
@@ -759,8 +1119,10 @@ public class GameManager : MonoBehaviour
     //Use Skill
     void useSkill(int skillIndex, int userIndex, int targetIndex)
     {
+        setUsedSkillBarCaption(skillIndex);
+
         //Prayer of Healing
-        if(skillIndex == 0)
+        if (skillIndex == 0)
         {
             //pay AP cost
             _hero[userIndex].setAP(_hero[userIndex].getAP() - _skillList._skillList[skillIndex]._APNeeded);
@@ -857,6 +1219,25 @@ public class GameManager : MonoBehaviour
             _hero[userIndex].setAP(_hero[userIndex].getAP() - _skillList._skillList[skillIndex]._APNeeded);
             PlayerGelud(userIndex, -1);
         }
+    }
+
+    void setUsedSkillBarCaption(int index)
+    {
+        if(index == -1)
+        {
+            _skillUsedBar.SetActive(false);
+        }
+        else
+        {
+            _skillUsedBar.SetActive(true);
+            _skillUsedName.text = _skillList._skillList[index]._skillName;
+        }
+    }
+
+    void enemyGeludCaption(string caption)
+    {
+        _skillUsedBar.SetActive(true);
+        _skillUsedName.text = caption;
     }
 
     #endregion
@@ -1134,37 +1515,117 @@ public class GameManager : MonoBehaviour
     void EnemyGelud(int enemyIndex, int heroIndex)
     {
         enemyAttackInProgress = true;
+        int enemyDamage, playerDefense;
+        float totalDamage = 0;
+        float[] totalDamages = new float[4];
 
-        int enemyDamage = 
-            Random.Range(_enemy[enemyIndex].getMAtk().min, _enemy[enemyIndex].getMAtk().max + 1) + 
+        bool singleAttack = true;
+
+        //normal enemy attack
+        if (!_enemyTawuran)
+        {
+            enemyDamage =
+            Random.Range(_enemy[enemyIndex].getMAtk().min, _enemy[enemyIndex].getMAtk().max + 1) +
             Random.Range(_enemy[enemyIndex].getRAtk().min, _enemy[enemyIndex].getRAtk().max + 1);
 
-        int playerDefense = 
-            _hero[heroIndex].getMDef() + 
-            _hero[heroIndex].getRDef() +
-            _hero[heroIndex]._equippedArmor._statsGiven[1] +
-            _hero[heroIndex]._equippedArmor._statsGiven[2] +
-            _hero[heroIndex]._equippedWeapon._statsGiven[3] +
-            _hero[heroIndex]._equippedWeapon._statsGiven[4];
+            playerDefense =
+                _hero[heroIndex].getMDef() +
+                _hero[heroIndex].getRDef() +
+                _hero[heroIndex]._equippedArmor._statsGiven[1] +
+                _hero[heroIndex]._equippedArmor._statsGiven[2] +
+                _hero[heroIndex]._equippedWeapon._statsGiven[3] +
+                _hero[heroIndex]._equippedWeapon._statsGiven[4];
 
-        float totalDamage = _scalingMultiplier * (100 - playerDefense) * enemyDamage / 100;
+            totalDamage = _scalingMultiplier * (100 - playerDefense) * enemyDamage / 100;
+            if (_prerseveranceTurnsRemaining > 0) totalDamage -= 30;
+            if (totalDamage < 0) totalDamage = 0;
 
-        if (_prerseveranceTurnsRemaining > 0) totalDamage -= 30;
-        if (totalDamage < 0) totalDamage = 0;
+            _hero[heroIndex].setHP(_hero[heroIndex].getHP() - (int)totalDamage);
+        }
+        else
+        {
+            enemyGeludCaption("Special Attack!");
+            if(_enemy[enemyIndex]._name == "Rogue" || _enemy[enemyIndex]._name == "Golem")
+            {
+                totalDamage = Random.Range(0.4f, 0.6f) * _hero[heroIndex].getNetMaxHP();
+                if (_prerseveranceTurnsRemaining > 0) totalDamage -= 30;
+                if (totalDamage < 0) totalDamage = 0;
 
-        _hero[heroIndex].setHP(_hero[heroIndex].getHP() - (int)totalDamage);
-        StartCoroutine(EnemyGeludAnim((int)totalDamage, enemyIndex, heroIndex));
+                _hero[heroIndex].setHP(_hero[heroIndex].getHP() - (int)totalDamage);
+            }
+            else
+            {
+                singleAttack = false;
+
+                for (int i = 0; i < _hero.Count; i++)
+                {
+                    enemyDamage =
+                        Random.Range(_enemy[enemyIndex].getMAtk().min, _enemy[enemyIndex].getMAtk().max + 1) +
+                        Random.Range(_enemy[enemyIndex].getRAtk().min, _enemy[enemyIndex].getRAtk().max + 1);
+
+                    playerDefense =
+                        _hero[i].getMDef() +
+                        _hero[i].getRDef() +
+                        _hero[i]._equippedArmor._statsGiven[1] +
+                        _hero[i]._equippedArmor._statsGiven[2] +
+                        _hero[i]._equippedWeapon._statsGiven[3] +
+                        _hero[i]._equippedWeapon._statsGiven[4];
+
+                    if (_prerseveranceTurnsRemaining > 0) totalDamages[i] -= 30;
+                    if (totalDamages[i] < 0) totalDamages[i] = 0;
+
+                    _hero[i].setHP(_hero[i].getHP() - (int)totalDamage);
+                }
+            }
+        }
+
+        if (singleAttack)
+        {
+            StartCoroutine(EnemyGeludAnim((int)totalDamage, enemyIndex, heroIndex));
+        }
+        else
+        {
+            StartCoroutine(EnemyTawuranAnim(totalDamages, enemyIndex));
+        }
     }
+
+    IEnumerator EnemyTawuranAnim(float[] totalDamages, int enemyIndex)
+    {
+        _enemy[enemyIndex].dealDamageAnim();
+        _sfx.enemySpecialAttackTwo();
+
+        yield return new WaitForSecondsRealtime(1f);
+
+        for(int i=0;i<_hero.Count;i++)
+         _hero[i].takeDamageAnim();
+        yield return new WaitForSecondsRealtime(0.8f);
+
+        for (int i = 0; i < _hero.Count; i++)
+            InstantiateDamage((int) totalDamages[i], _hero[i].gameObject, false);
+        yield return new WaitForSecondsRealtime(1f);
+
+        setUsedSkillBarCaption(-1);
+        updateGameCondition();
+
+        enemyAttackInProgress = false;
+    }
+
     IEnumerator EnemyGeludAnim(int totalDamage, int enemyIndex, int heroIndex)
     {
         _enemy[enemyIndex].dealDamageAnim();
-        _sfx.attack();
+
+        if (_enemyTawuran) _sfx.enemySpecialAttackOne();
+        else _sfx.attack();
+
         yield return new WaitForSecondsRealtime(1f);
         _hero[heroIndex].takeDamageAnim();
         yield return new WaitForSecondsRealtime(0.8f);
         InstantiateDamage(totalDamage, _hero[heroIndex].gameObject, false);
         yield return new WaitForSecondsRealtime(1f);
+
+        setUsedSkillBarCaption(-1);
         updateGameCondition();
+        
         enemyAttackInProgress = false;
     }
     #endregion
