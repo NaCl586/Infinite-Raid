@@ -28,4 +28,7 @@ public class Weapon : MonoBehaviour
     public rangedInt getRAtk() { return this._RAtk; }
     public rangedInt getMDef() { return this._MDef; }
     public rangedInt getRDef() { return this._RDef; }
+
+    public bool isBuffer() { return _buffer; }
+    public bool isHealer() { return _healer; }
 }

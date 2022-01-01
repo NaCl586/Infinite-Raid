@@ -13,6 +13,9 @@ public class SFX : MonoBehaviour
     public AudioClip _select;
     public AudioClip _heal;
     public AudioClip _confirm;
+    public AudioClip _enemySpecialAttack1;
+    public AudioClip _enemySpecialAttack2;
+    public AudioClip _gainAP;
 
     [Header("Skill Sound")]
     public AudioClip _preserverance;
@@ -49,4 +52,9 @@ public class SFX : MonoBehaviour
     public void battleStart() { _audioSource.PlayOneShot(_battleStart); }
     public void heal() { _audioSource.PlayOneShot(_heal); }
     public void confirm() { _audioSource.PlayOneShot(_confirm); }
+
+    public void enemySpecialAttackOne() { _audioSource.PlayOneShot(_enemySpecialAttack1); }
+    public void enemySpecialAttackTwo() { _audioSource.PlayOneShot(_enemySpecialAttack2); }
+
+    public void gainAP() { _audioSource.PlayOneShot(_gainAP); }
 }
