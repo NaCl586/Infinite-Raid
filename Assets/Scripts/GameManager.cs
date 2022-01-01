@@ -89,6 +89,7 @@ public class GameManager : MonoBehaviour
     //game related stuff
     private int _wave;
     private GameState _gameState;
+    private bool _newHeroSpawned = false;
 
     //UI related stuff
     private menuState _selectedMenu;
@@ -283,10 +284,26 @@ public class GameManager : MonoBehaviour
 
         game.SetActive(true);
         preBattle.SetActive(false);
-        
-        //this is to instantiate additional hero
-        instantiateNewHero();
 
+        //this is to instantiate additional hero
+        int chance = PlayerPrefs.GetInt("NewHeroSpawnChance", 0);
+        Debug.Log(chance);
+        int partyCount = _hero.Count;
+        if (_wave == 5 && partyCount == 1)
+        {
+            instantiateNewHero();
+        }
+        else if(partyCount != 4)
+        {
+            float rng = Random.Range(0f, 1f);
+            float gacha = chance / 100; //rng harus masuk kedalam range 0 - chance/100 kalo mau yes, which means rng <= chance
+            if(rng <= chance)
+            {
+                instantiateNewHero();
+                _newHeroSpawned = true;
+            }
+        }
+        
         //hero instantiation moved to pre battle manager, disini cuma handle animation aja
         //Player Stat Init
         foreach (HeroStats h in heroStats)
@@ -1810,6 +1827,18 @@ public class GameManager : MonoBehaviour
 
         //first message
         saveGame();
+        int chance = PlayerPrefs.GetInt("NewHeroSpawnChance", 0);
+        if (_newHeroSpawned)
+        {
+            PlayerPrefs.SetInt("NewHeroSpawnChance", 0);
+        }
+        else
+        {
+            int partyCount = _hero.Count;
+            if (partyCount == 1) PlayerPrefs.SetInt("NewHeroSpawnChance", chance + 10);
+            else if (partyCount == 2) PlayerPrefs.SetInt("NewHeroSpawnChance", chance + 5);
+            else if (partyCount == 3) PlayerPrefs.SetInt("NewHeroSpawnChance", chance + 2);
+        }
         StartCoroutine(DelayBeforePromptInput());
     }
 
