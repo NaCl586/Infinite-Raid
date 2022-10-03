@@ -648,10 +648,15 @@ public class preBattleManager : MonoBehaviour
             {
                 updateArrowTime();
                 _selectedWhoToSwapWith--;
-                if (_selectedWhoToSwapWith == _selectedHero) _selectedWhoToSwapWith--;
-
                 if (_selectedWhoToSwapWith >= _totalAlivePlayers) _selectedWhoToSwapWith = 0;
                 if (_selectedWhoToSwapWith < 0) _selectedWhoToSwapWith = _totalAlivePlayers - 1;
+
+                while (_selectedWhoToSwapWith == _selectedHero)
+                {
+                    _selectedWhoToSwapWith--;
+                    if (_selectedWhoToSwapWith >= _totalAlivePlayers) _selectedWhoToSwapWith = 0;
+                    if (_selectedWhoToSwapWith < 0) _selectedWhoToSwapWith = _totalAlivePlayers - 1;
+                }
                 showHeroMenu();
                 setCursorPosition();
 
@@ -660,10 +665,15 @@ public class preBattleManager : MonoBehaviour
             {
                 updateArrowTime();
                 _selectedWhoToSwapWith++;
-                if (_selectedWhoToSwapWith == _selectedHero) _selectedWhoToSwapWith++;
-
                 if (_selectedWhoToSwapWith >= _totalAlivePlayers) _selectedWhoToSwapWith = 0;
                 if (_selectedWhoToSwapWith < 0) _selectedWhoToSwapWith = _totalAlivePlayers - 1;
+
+                while (_selectedWhoToSwapWith == _selectedHero)
+                {
+                    _selectedWhoToSwapWith++;
+                    if (_selectedWhoToSwapWith >= _totalAlivePlayers) _selectedWhoToSwapWith = 0;
+                    if (_selectedWhoToSwapWith < 0) _selectedWhoToSwapWith = _totalAlivePlayers - 1;
+                }
                 showHeroMenu();
                 setCursorPosition();
             }
