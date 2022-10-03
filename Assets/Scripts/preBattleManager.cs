@@ -769,7 +769,7 @@ public class preBattleManager : MonoBehaviour
             {
                 updateArrowTime();
                 _selectedSkillToReplace++;
-                if (_selectedSkill >= _gameManager._hero[_selectedHero]._equippedArmor._slots) _selectedSkillToReplace = 1;
+                if (_selectedSkillToReplace >= _gameManager._hero[_selectedHero]._equippedArmor._slots) _selectedSkillToReplace = 1;
                 resetText(_skills);
                 _skills[_selectedSkillToReplace].color = Color.yellow;
             }
@@ -857,10 +857,17 @@ public class preBattleManager : MonoBehaviour
                 _sfx.confirm();
 
                 if (_postBattleWeapon == null)
+                {
                     _gameManager._hero[_selectedHero]._equippedArmor = _postBattleArmor;
+                }
                 else if(_postBattleArmor == null)
+                {
                     _gameManager._hero[_selectedHero]._equippedWeapon = _postBattleWeapon;
-
+                    _gameManager._hero[_selectedHero]._equippedArmor._skills[0] = 0;
+                    _gameManager._hero[_selectedHero]._equippedArmor._skills[1] = -1;
+                    _gameManager._hero[_selectedHero]._equippedArmor._skills[2] = -1;
+                }
+                    
                 updateHeroMenu();
                 showHeroMenu();
                 

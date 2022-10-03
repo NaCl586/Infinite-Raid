@@ -287,7 +287,7 @@ public class GameManager : MonoBehaviour
 
         //this is to instantiate additional hero
         int chance = PlayerPrefs.GetInt("NewHeroSpawnChance", 0);
-        Debug.Log(chance);
+
         int partyCount = _hero.Count;
         if (_wave == 5 && partyCount == 1)
         {
@@ -295,9 +295,9 @@ public class GameManager : MonoBehaviour
         }
         else if(partyCount != 4)
         {
-            float rng = Random.Range(0f, 1f);
-            float gacha = chance / 100; //rng harus masuk kedalam range 0 - chance/100 kalo mau yes, which means rng <= chance
-            if(rng <= chance)
+            float rng = Random.Range(0, 101);
+            //rng harus masuk kedalam range 0 - chance/100 kalo mau yes, which means rng <= chance
+            if (rng <= chance)
             {
                 instantiateNewHero();
                 _newHeroSpawned = true;
@@ -440,6 +440,7 @@ public class GameManager : MonoBehaviour
     private float arrowStartTime;
     private bool enemyAttackInProgress, enemyAttackStarted;
     private bool npcAttackInProgress, npcAttackStarted;
+    private bool isSelectingEnemy;
     void Update()
     {
         //Player's Turn
@@ -530,6 +531,7 @@ public class GameManager : MonoBehaviour
                     //skill yg perlu cari subject: indeks 2,3,4,5
                     else if (_selectedSkill >= 2 && _selectedSkill <= 5)
                     {
+                        isSelectingEnemy = true;
                         _selectedEnemy = 0;
                         _selectedMenu = menuState.enemySelect;
                         arrow.SetActive(true);
@@ -583,12 +585,26 @@ public class GameManager : MonoBehaviour
                 else if (Input.GetKey(KeyCode.DownArrow) && (Time.time - arrowStartTime) > 0.175f) changeEnemyMenu(1);
                 if (Input.GetKey(KeyCode.Escape) && (Time.time - arrowStartTime) > 0.175f)
                 {
-                    arrowStartTime = Time.time;
-                    _sfx.cursor();
-                    _selectedMenu = menuState.actionSelect;
-                    arrow.SetActive(false);
-                    clearEnemyMenu();
-                    setActionMenu();
+                    if (isSelectingEnemy)
+                    {
+                        arrowStartTime = Time.time;
+                        _sfx.cursor();
+                        _selectedMenu = menuState.skillSelect;
+                        if (_selectedSkill == -1) _selectedSkill = 0;
+                        _selectedSkillMenu = 0;
+                        arrow.SetActive(false);
+                        clearEnemyMenu();
+                        setSkillMenu();
+                    }
+                    else
+                    {
+                        arrowStartTime = Time.time;
+                        _sfx.cursor();
+                        _selectedMenu = menuState.actionSelect;
+                        arrow.SetActive(false);
+                        clearEnemyMenu();
+                        setActionMenu();
+                    }
                 }
                 if (Input.GetKey(KeyCode.Return) && (Time.time - arrowStartTime) > 0.175f)
                 {
@@ -1119,7 +1135,7 @@ public class GameManager : MonoBehaviour
             _birdOfPreyEnemyTarget = null;
         }
 
-        for(int i = 0; i < _enemyCount; i++)
+        for(int i = 0; i < _enemy.Count; i++)
         {
             int APGainRNG = Random.Range(1, 6);
             int APGain;
@@ -1350,16 +1366,38 @@ public class GameManager : MonoBehaviour
     {
         _sfx.cursor();
         arrowStartTime = Time.time;
-        if (dir == 1) _selectedSkillMenu++;
-        else if (dir == -1) _selectedSkillMenu--;
 
         int reps = _hero[_selectedHero]._equippedArmor._slots;
         int max = 0;
-        for(int i = 0; i < reps; i++)
-            if (_hero[_selectedHero]._equippedArmor._skills[i] != -1) max++;
+        for (int i = 0; i < reps; i++)
+        {
+            if (i != reps - 1 && 
+                i != 0 &&
+                _hero[_selectedHero]._equippedArmor._skills[i] == -1 && 
+                _hero[_selectedHero]._equippedArmor._skills[i + 1] != -1) 
+                max++;
 
-        if (_selectedSkillMenu < 0) _selectedSkillMenu = max - 1;
-        if (_selectedSkillMenu >= max) _selectedSkillMenu = 0;
+            else if (_hero[_selectedHero]._equippedArmor._skills[i] != -1) 
+                max++;
+        }
+            
+
+        if (dir == 1)
+        {
+            _selectedSkillMenu++;
+            if (_selectedSkillMenu >= max) _selectedSkillMenu = 0;
+            
+            if (_hero[_selectedHero]._equippedArmor._skills[_selectedSkillMenu] == -1) _selectedSkillMenu++;
+            if (_selectedSkillMenu >= max) _selectedSkillMenu = 0;
+        }
+        else if (dir == -1)
+        {
+            _selectedSkillMenu--;
+            if (_selectedSkillMenu < 0) _selectedSkillMenu = max - 1;
+            
+            if (_hero[_selectedHero]._equippedArmor._skills[_selectedSkillMenu] == -1) _selectedSkillMenu--;
+            if (_selectedSkillMenu < 0) _selectedSkillMenu = max - 1;
+        }
 
         _selectedSkill = _hero[_selectedHero]._equippedArmor._skills[_selectedSkillMenu];
         setSkillMenu();
@@ -1701,6 +1739,9 @@ public class GameManager : MonoBehaviour
         if (_enemy.Count == 0)
         {
             _gameState = GameState.battleEnd;
+            if(_sleepyGameObjectRef != null) 
+                Destroy(_sleepyGameObjectRef);
+            setUsedSkillBarCaption(-1);
             StartCoroutine(gameWinAnim());
         }
     }
