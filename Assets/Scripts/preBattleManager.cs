@@ -894,7 +894,7 @@ public class preBattleManager : MonoBehaviour
         {
             _postBattleIdx--;
             _gameManager.saveGame();
-            SceneManager.LoadScene(0);
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
             
         setPostBattleCaption(_postBattleIdx);

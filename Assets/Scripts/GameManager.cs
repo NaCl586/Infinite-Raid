@@ -1951,7 +1951,7 @@ public class GameManager : MonoBehaviour
         if (_items.Count == 0)
         {
             _levelUpBar.SetActive(false);
-            SceneManager.LoadScene(0);
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
 
         for (int i = 0; i < _items.Count; i++)
